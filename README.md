@@ -9,8 +9,6 @@ This repository contains a collection of my custom components.
 A component to support [iNode.pl](https://inode.pl/) devices
 (energy meters and magnetometers).
 
-This works best, with running concurrently WiFi and Bluetooth.
-
 ```yaml
 wifi:
   ...
