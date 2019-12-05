@@ -144,21 +144,21 @@ bool EQ3Climate::query_id() {
 }
 
 bool EQ3Climate::query_state() {
-  if (!time_clock || !time_clock->utcnow().is_valid()) {
+  if (!time_clock || !time_clock->now().is_valid()) {
     ESP_LOGE(TAG, "Clock source for %10llx is not valid.", address);
     return false;
   }
 
-  auto utcnow = time_clock->utcnow();
+  auto now = time_clock->now();
 
   uint8_t command[] = {
     PROP_INFO_QUERY,
-    uint8_t(utcnow.year % 100),
-    utcnow.month,
-    utcnow.day_of_month,
-    utcnow.hour,
-    utcnow.minute,
-    utcnow.second
+    uint8_t(now.year % 100),
+    now.month,
+    now.day_of_month,
+    now.hour,
+    now.minute,
+    now.second
   };
 
   return send_command(command, sizeof(command));
