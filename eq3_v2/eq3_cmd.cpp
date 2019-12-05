@@ -100,7 +100,7 @@ bool EQ3Climate::send_command(uint8_t *command, uint16_t length) {
   bool result = ble_client->write(
     ESP32BLEClient::Characteristic,
     command_handle,
-    command, sizeof(command),
+    command, length,
     true);
 
   if (result) {
