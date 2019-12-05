@@ -2,12 +2,34 @@
 
 This repository contains a collection of my custom components.
 
-## 1. Components
+## 1. Installation
 
-### 1.1. `inode_ble`
+Clone this repository into `custom_components` in a folder
+where the `config.yaml` is stored.
+
+```bash
+git clone https://github.com/ayufan/esphome-components.git custom_components
+```
+
+This is the directory structure expected:
+
+```bash
+$ ls -al
+total 64
+drwxr-xr-x 6 ayufan ayufan 4096 gru  3 22:56 .
+drwxr-xr-x 9 ayufan ayufan 4096 gru  3 13:19 ..
+drwxr-xr-x 7 ayufan ayufan 4096 gru  5 17:25 custom_components
+-rw-r--r-- 1 ayufan ayufan 1509 gru  3 10:00 esp32-emeter.yaml
+```
+
+## 2. Components
+
+### 2.1. `inode_ble`
 
 A component to support [iNode.pl](https://inode.pl/) devices
 (energy meters and magnetometers).
+
+#### 2.1.1. Example
 
 ```yaml
 wifi:
@@ -55,7 +77,7 @@ sensor:
       expire_after: 10min
 ```
 
-### 1.2. `eq3_v2`
+### 2.2. `eq3_v2`
 
 A component to support [eQ-3 Radiator Thermostat Model N](https://www.eq-3.com/products/homematic/detail/radiator-thermostat-model-n.html),
 and maybe also other ones.
@@ -63,8 +85,18 @@ and maybe also other ones.
 This uses custom `esp32_ble_clients` implementation to support
 Bluetooth on ESP32.
 
-This is quite challenging to ensure that BT works well with WiFi
-ideally it is preferred to run only `eq3_v2` on a single device.
+#### 2.2.1. Stability
+
+This is quite challenging to ensure that BT works well with WiFi.
+Ideally it is preferred to run only `eq3_v2` component
+on a single device, with all basic services. Usage of complex services,
+or complex logic can cause stability issues.
+
+I also noticed that extensive logging (like in `VERBOSE` mode)
+during the BT connection cases WiFi to loose beacons,
+and results in disconnect.
+
+#### 2.2.2. Example
 
 ```yaml
 wifi:
@@ -99,7 +131,7 @@ switch:
       - component.update: office_eq3
 ```
 
-### 1.3. `memory`
+### 2.3. `memory`
 
 Simple component that periodically prints free memory of node.
 
@@ -107,6 +139,6 @@ Simple component that periodically prints free memory of node.
 memory:
 ```
 
-## 2. Author & License
+## 3. Author & License
 
 Kamil Trzciński, MIT, 2019
