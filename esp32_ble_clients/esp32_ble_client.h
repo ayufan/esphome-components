@@ -56,7 +56,7 @@ public:
   bool write(
     WriteType type,
     uint16_t handle,
-    uint8_t *data, uint16_t data_length,
+    void *data, uint16_t data_length,
     bool response);
 
   bool register_notify(

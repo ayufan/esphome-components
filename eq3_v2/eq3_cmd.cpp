@@ -85,7 +85,7 @@ void EQ3Climate::disconnect() {
   ESP_LOGV(TAG, "Disconnected from %10llx.", address);
 }
 
-bool EQ3Climate::send_command(uint8_t *command, uint16_t length) {
+bool EQ3Climate::send_command(void *command, uint16_t length) {
   if (!ble_client) {
     return false;
   }
@@ -122,11 +122,7 @@ bool EQ3Climate::wait_for_notify(int timeout_ms) {
   auto notifications = ble_client->wait_for_notifications(timeout_ms);
 
   for (auto iter = notifications.begin(); iter != notifications.end(); ++iter) {
-    // delay processing of data
-    auto data = iter->data;
-    defer("notify", [this, data]() {
-      parse_client_notify(data);
-    });
+    parse_client_notify(iter->data);
   }
 
   if (notifications.empty()) {
@@ -164,8 +160,8 @@ bool EQ3Climate::query_state() {
   return send_command(command, sizeof(command));
 }
 
-bool EQ3Climate::query_schedule(uint8_t day) {
-  if (day > 6) {
+bool EQ3Climate::query_schedule(EQ3Day day) {
+  if (day > EQ3_LastDay) {
     return false;
   }
 
@@ -274,13 +270,19 @@ bool EQ3Climate::set_window_config(int seconds, int temperature) {
   return send_command(command, sizeof(command));
 }
 
-void EQ3Climate::parse_client_notify(const std::string &data) {
+void EQ3Climate::parse_client_notify(std::string data) {
   if (data.size() >= 2 && data[0] == PROP_INFO_RETURN && data[1] == 0x1) {
-    parse_state(data);
+    defer("parse_notify", [this, data]() {
+      parse_state(data);
+    });
   } else if (data.size() >= 1 && data[0] == PROP_SCHEDULE_RETURN) {
-    parse_schedule(data);
+    defer("parse_schedule_" + to_string(data[1]), [this, data]() {
+      parse_schedule(data);
+    });
   } else if (data.size() >= 1 && data[0] == PROP_ID_RETURN) {
-    parse_id(data);
+    defer("parse_id", [this, data]() {
+      parse_id(data);
+    });
   } else {
     ESP_LOGV(TAG, "Received unknown characteristic for %10llx, of size %d.",
       address, data.size());

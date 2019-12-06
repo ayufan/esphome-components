@@ -383,7 +383,7 @@ uint16_t ESP32BLEClient::get_descriptor(
 
 bool ESP32BLEClient::write(
   WriteType type, uint16_t handle,
-  uint8_t *data, uint16_t data_length, bool response)
+  void *data, uint16_t data_length, bool response)
 {
   ESP32BLELock lock(this->lock);
 
@@ -400,7 +400,7 @@ bool ESP32BLEClient::write(
   }
 
   auto ret = GATT_LOG(write_func(
-    *gattc_if, *conn_id, handle, data_length, data,
+    *gattc_if, *conn_id, handle, data_length, (uint8_t*)data,
     response ? ESP_GATT_WRITE_TYPE_RSP : ESP_GATT_WRITE_TYPE_NO_RSP,
     ESP_GATT_AUTH_REQ_NONE
   ));
