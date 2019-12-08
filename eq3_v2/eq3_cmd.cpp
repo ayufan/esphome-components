@@ -9,7 +9,7 @@ using namespace esphome;
 
 static const char *TAG = "eq3_cmd";
 
-static uint8_t temp_to_dev(float value) {
+static uint8_t temp_to_dev(const float &value) {
   if (value < EQ3BT_MIN_TEMP)
     return uint8_t(EQ3BT_MIN_TEMP * 2);
   else if (value > EQ3BT_MAX_TEMP)
@@ -169,7 +169,7 @@ bool EQ3Climate::query_schedule(EQ3Day day) {
   return send_command(command, sizeof(command));
 }
 
-bool EQ3Climate::set_temperature(int temperature) {
+bool EQ3Climate::set_temperature(float temperature) {
   uint8_t command[2];
 
   if (temperature <= EQ3BT_OFF_TEMP) {
@@ -237,7 +237,7 @@ bool EQ3Climate::set_temperature_type(int eco) {
   return send_command(command, sizeof(command));
 }
 
-bool EQ3Climate::set_temperature_presets(int comfort, int eco) {
+bool EQ3Climate::set_temperature_presets(float comfort, float eco) {
   uint8_t command[] = {
     PROP_COMFORT_ECO_CONFIG,
     temp_to_dev(comfort),
@@ -256,7 +256,7 @@ bool EQ3Climate::set_locked(bool locked) {
   return send_command(command, sizeof(command));
 }
 
-bool EQ3Climate::set_window_config(int seconds, int temperature) {
+bool EQ3Climate::set_window_config(int seconds, float temperature) {
   if (seconds < 0 || seconds > 3600) {
     return false;
   }

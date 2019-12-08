@@ -64,13 +64,13 @@ private:
   bool set_manual_mode();
   bool set_boost_mode(bool enabled);
   // bool set_away_mode()
-  bool set_temperature(int temperature);
+  bool set_temperature(float temperature);
   bool set_temperature_type(int eco);
   bool set_temperature_offset(float offset);
-  bool set_temperature_presets(int comfort, int eco);
-  bool set_window_config(int seconds, int temperature);
+  bool set_temperature_presets(float comfort, float eco);
+  bool set_window_config(int seconds, float temperature);
   bool set_locked(bool locked);
-  // bool set_away(int temperature, int till_when)
+  // bool set_away(float temperature, int till_when)
   // bool set_mode(int mode)
 
 private:
