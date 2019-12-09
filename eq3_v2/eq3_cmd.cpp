@@ -105,10 +105,10 @@ bool EQ3Climate::send_command(void *command, uint16_t length) {
 
   if (result) {
     ESP_LOGV(TAG, "Sent of `%s` to %10llx to handle %04x.",
-      hexencode(command, length).c_str(), address, command_handle);
+      hexencode((const uint8_t*)command, length).c_str(), address, command_handle);
   } else {
     ESP_LOGV(TAG, "Send of `%s` to %10llx to handle %04x: %d",
-      hexencode(command, length).c_str(), address, command_handle, result);
+      hexencode((const uint8_t*)command, length).c_str(), address, command_handle, result);
   }
 
   return result;
