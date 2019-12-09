@@ -284,7 +284,8 @@ void EQ3Climate::parse_client_notify(std::string data) {
       parse_id(data);
     });
   } else {
-    ESP_LOGV(TAG, "Received unknown characteristic for %10llx, of size %d.",
-      address, data.size());
+    ESP_LOGW(TAG, "Received unknown characteristic from %10llx: %s.",
+      address,
+      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
   }
 }

@@ -154,8 +154,9 @@ void EQ3Climate::control_retry(ClimateCall call, int tries) {
 
 void EQ3Climate::parse_state(const std::string &data) {
   if (data.size() != sizeof(DeviceStateReturn)) {
-    ESP_LOGI(TAG, "State parse of %10llx failed. Invalid size: %d.",
-      address, data.size());
+    ESP_LOGW(TAG, "State parse of %10llx failed: %s.",
+      address,
+      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
@@ -212,8 +213,9 @@ void EQ3Climate::parse_state(const std::string &data) {
 
 void EQ3Climate::parse_schedule(const std::string &data) {
   if (data.size() < sizeof(DeviceScheduleReturn)) {
-    ESP_LOGI(TAG, "Schedule parse of %10llx failed. Invalid size: %d.",
-      address, data.size());
+    ESP_LOGW(TAG, "Schedule parse of %10llx failed: %s.",
+      address,
+      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
@@ -243,8 +245,9 @@ void EQ3Climate::parse_schedule(const std::string &data) {
 
 void EQ3Climate::parse_id(const std::string &data) {
   if (data.size() != sizeof(DeviceIDReturn)) {
-    ESP_LOGI(TAG, "ID parse of %10llx failed. Invalid size: %d.",
-      address, data.size());
+    ESP_LOGW(TAG, "ID parse of %10llx failed: %s.",
+      address,
+      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
