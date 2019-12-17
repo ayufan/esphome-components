@@ -13,6 +13,7 @@ AUTO_LOAD = ['sensor', 'esp32_ble_clients']
 
 CONF_VALVE = 'valve'
 CONF_PIN = 'pin'
+CONF_TEMP = 'temperature_sensor'
 
 EQ3Climate = cg.global_ns.class_('EQ3Climate', climate.Climate, cg.PollingComponent)
 
@@ -22,6 +23,7 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
     cv.Optional(CONF_VALVE): sensor.sensor_schema(UNIT_PERCENT, ICON_PERCENT, 0),
     cv.Optional(CONF_PIN): cv.string,
+    cv.Optional(CONF_TEMP): cv.use_id(sensor.Sensor)
 }).extend(cv.polling_component_schema('4h')))
 
 
@@ -34,6 +36,10 @@ def to_code(config):
 
     time_ = yield cg.get_variable(config[CONF_TIME_ID])
     cg.add(var.set_time(time_))
+
+    if CONF_TEMP in config:
+        sens = yield cg.get_variable(config[CONF_TEMP])
+        cg.add(var.set_temperature_sensor(sens))
 
     if CONF_VALVE in config:
         sens = yield sensor.new_sensor(config[CONF_VALVE])
