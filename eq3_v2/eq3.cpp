@@ -25,6 +25,16 @@ void EQ3Climate::setup() {
   if (restore.has_value()) {
     restore->apply(this);
   }
+
+  if (this->temperature_sensor) {
+    this->temperature_sensor->add_on_state_callback([this](float state) {
+      this->current_temperature = state;
+
+      // current temperature changed, publish state
+      this->publish_state();
+    });
+  }
+
 }
 
 void EQ3Climate::update() {
@@ -263,6 +273,9 @@ void EQ3Climate::parse_id(const std::string &data) {
 ClimateTraits EQ3Climate::traits() {
   auto traits = ClimateTraits();
   traits.set_supports_auto_mode(true);
+  if (this->temperature_sensor) {
+    traits.set_supports_current_temperature(true);
+  }
   traits.set_supports_heat_mode(true);
   traits.set_supports_away(false); // currently not working
   traits.set_visual_min_temperature(EQ3BT_MIN_TEMP);

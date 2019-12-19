@@ -39,6 +39,7 @@ public:
   void set_address(uint64_t new_address) { address = new_address; }
   void set_valve(esphome::sensor::Sensor *sensor) { valve = sensor; }
   void set_time(esphome::time::RealTimeClock *clock) { time_clock = clock; }
+  void set_temperature_sensor(esphome::sensor::Sensor *sensor) { temperature_sensor = sensor; };
 
 public:
   void control(const esphome::climate::ClimateCall &call) override;
@@ -82,6 +83,8 @@ private:
   uint64_t address{0};
   esphome::sensor::Sensor *valve{nullptr};
   esphome::time::RealTimeClock *time_clock{nullptr};
+  /// The sensor used for getting the current temperature
+  esphome::sensor::Sensor *temperature_sensor{nullptr};
   std::unique_ptr<ESP32BLEClient> ble_client;
 
   esphome::optional<bool> last_schedule[EQ3_LastDay];
