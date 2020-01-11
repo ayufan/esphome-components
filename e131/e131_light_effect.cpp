@@ -52,7 +52,7 @@ void E131LightEffect::apply(esphome::light::AddressableLight &it, const esphome:
 void E131LightEffect::process(int universe, const e131_packet_t &packet) {
   auto it = get_addressable_();
 
-  ESP_LOGD(TAG, "Received E1.31 packet on %s for %d universe, with %d bytes",
+  ESP_LOGV(TAG, "Received E1.31 packet on %s for %d universe, with %d bytes",
     get_name().c_str(),
     universe, packet.property_value_count);
 
@@ -66,7 +66,7 @@ void E131LightEffect::process(int universe, const e131_packet_t &packet) {
     it->size());
   auto input_data = packet.property_values + 1;
 
-  ESP_LOGD(TAG, "Applying data on %d-%d", output_offset, output_end);
+  ESP_LOGV(TAG, "Applying data on %d-%d", output_offset, output_end);
 
   if (channels_ == E131_RGB) {
     for ( ; output_offset < output_end; output_offset++, input_data += 3) {
