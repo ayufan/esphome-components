@@ -131,7 +131,46 @@ switch:
       - component.update: office_eq3
 ```
 
-### 2.3. `memory`
+### 2.3. `e131`
+
+A component to support [E1.31](https://www.doityourselfchristmas.com/wiki/index.php?title=E1.31_(Streaming-ACN)_Protocol). This allows to control addressable LEDs over WiFi, by pushing data right into LEDs.
+
+The most popular application would be: [JINX](http://www.live-leds.de/jinx-v1-3-with-resizable-mainwindow-real-dmx-and-sacne1-31/).
+
+```yaml
+e131:
+  method: multicast # Register E1.31 to Multicast group
+  # method: unicast # Listen only on port
+
+light:
+  - platform: neopixelbus
+    pin: D4
+    method: ESP8266_UART1
+    num_leds: 189
+    name: LEDs
+    effects:
+      - e131:
+          universe: 1
+          channels: RGB
+          # channels: RGBW: to support additional W-channel
+```
+
+There are two modes of operation:
+
+- `RGB`: this supports 3 components per channel (RGB), up-to 170 LEDs (3*170 = 510 bytes) per universe
+- `RGBW`: this supports 4 components per channel (RGBW), up-to 128 LEDs (4*128 = 512 bytes) per universe
+
+If there's more LEDs than allowed per-universe, additional universe will be used.
+In the above example of 189 LEDs, first 170 LEDs will be assigned to 1 universe,
+the rest of 19 LEDs will be automatically assigned to 2 universe.
+
+It is possible to enable multiple light platforms to listen to the same universe concurrently,
+allowing to replicate the behaviour on multiple strips.
+
+Sometimes it might be advised to improved stability if `multicast` mode does not work
+to connect directly via IP to the esp-node.
+
+### 2.4. `memory`
 
 Simple component that periodically prints free memory of node.
 
