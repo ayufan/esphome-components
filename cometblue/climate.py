@@ -12,16 +12,17 @@ DEPENDENCIES = ['time']
 AUTO_LOAD = ['sensor', 'esp32_ble_clients']
 
 CONF_VALVE = 'valve'
+CONF_MOTORMOVING = 'motormoving'
+CONF_SATISFIED = 'satisfied'
 CONF_PIN = 'pin'
 CONF_TEMP = 'temperature_sensor'
 
-ComeBlueClimate = cg.global_ns.class_('CometBlueClimate', climate.Climate, cg.PollingComponent)
+CometBlueClimate = cg.global_ns.class_('CometBlueClimate', climate.Climate, cg.PollingComponent)
 
 CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(CometBlueClimate),
     cv.GenerateID(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
     cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
-    cv.Optional(CONF_VALVE): sensor.sensor_schema(UNIT_PERCENT, ICON_PERCENT, 0),
     cv.Optional(CONF_PIN): cv.string,
     cv.Optional(CONF_TEMP): cv.use_id(sensor.Sensor)
 }).extend(cv.polling_component_schema('4h')))

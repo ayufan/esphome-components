@@ -23,7 +23,7 @@ bool CometBlueClimate::with_connection(std::function<bool()> handler) {
 
   success = success && connect();
   success = success && handler();
-  success = success && wait_for_notify();
+  
   disconnect();
 
   return success;
@@ -59,18 +59,6 @@ bool CometBlueClimate::connect() {
     return false;
   }
 
-  uint16_t notify_handle = new_ble_client->get_characteristic(
-    PROP_SERVICE_UUID, PROP_NOTIFY_CHARACTERISTIC_UUID);
-
-  if (!notify_handle) {
-    new_ble_client.reset();
-    ESP_LOGE(TAG, "Cannot find notification handle for %10llx.", address);
-    return false;
-  }
-
-  new_ble_client->register_notify(notify_handle, true);
-  new_ble_client->write_notify_desc(notify_handle, true, true);
-
   ESP_LOGV(TAG, "Connected to %10llx.", address);
   new_ble_client.swap(ble_client);
   return true;
@@ -85,13 +73,13 @@ void CometBlueClimate::disconnect() {
   ESP_LOGV(TAG, "Disconnected from %10llx.", address);
 }
 
-bool CometBlueClimate::send_command(void *command, uint16_t length) {
+bool CometBlueClimate::send_command(void *command, uint16_t length, esp_bt_uuid_t uuid) {
   if (!ble_client) {
     return false;
   }
 
   uint16_t command_handle = ble_client->get_characteristic(
-    PROP_SERVICE_UUID, PROP_COMMAND_CHARACTERISTIC_UUID);
+    PROP_SERVICE_UUID, uuid);
   if (!command_handle) {
     ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
     return false;
@@ -114,178 +102,170 @@ bool CometBlueClimate::send_command(void *command, uint16_t length) {
   return result;
 }
 
-bool CometBlueClimate::wait_for_notify(int timeout_ms) {
+bool CometBlueClimate::read_value(esp_bt_uuid_t uuid) {
   if (!ble_client) {
     return false;
   }
 
-  auto notifications = ble_client->wait_for_notifications(timeout_ms);
-
-  for (auto iter = notifications.begin(); iter != notifications.end(); ++iter) {
-    parse_client_notify(iter->data);
-  }
-
-  if (notifications.empty()) {
-    ESP_LOGV(TAG, "Did not receive notification for %10llx.", address);
+  uint16_t command_handle = ble_client->get_characteristic(
+    PROP_SERVICE_UUID, uuid);
+  if (!command_handle) {
+    ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
     return false;
   }
 
-  ESP_LOGV(TAG, "Received notification for %10llx.", address);
+  bool result = ble_client->read(command_handle);
+  ESP_LOGV(TAG, "read from %10llx from handle %04x with result %d.", address, command_handle, result);
+  ESP_LOGV(TAG, "read from %10llx from %02x_%02x_%02x_%02x_%02x_%02x_%02x en %d.", address, ble_client->readresult_value[0], ble_client->readresult_value[1], ble_client->readresult_value[2], ble_client->readresult_value[3], ble_client->readresult_value[4], ble_client->readresult_value[5], ble_client->readresult_value[6], ble_client->readresult_value_len);
+
+  return result;
+}
+
+bool CometBlueClimate::send_pincode() {
+  uint8_t command[] = {
+      0, 0, 0, 0 // pincode still hardcoded
+  };
+
+  return send_command(command, sizeof(command), PROP_PIN_CHARACTERISTIC_UUID);
+}
+
+bool CometBlueClimate::get_time() {
+
+  return read_value(PROP_TIME_CHARACTERISTIC_UUID);
+}
+
+bool CometBlueClimate::get_flags() {
+  if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
+    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    if (status && 1==1) {
+      mode = climate::CLIMATE_MODE_HEAT;
+    } else {
+      mode = climate::CLIMATE_MODE_AUTO;
+    }
+
+    return true;
+  }
+  return false;
+}
+
+bool CometBlueClimate::get_temperature() {
+  bool result = read_value(PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+  if (result) {
+    current_temperature = ((float)ble_client->readresult_value[0]) / 2.0f; 
+    target_temperature = ((float)ble_client->readresult_value[1] / 2.0f);
+   
+    // Offset= ble_client->readresult_value[4] / 2.0f;
+    // Window open detection= ble_client->readresult_value[5] ;
+    // Window open minutes= ble_client->readresult_value[6] ;    
+  }
+  
+  return result;
+}
+
+
+
+bool CometBlueClimate::query_state() {
+
+  send_pincode();
+
+  get_flags();
+
+  get_temperature();
+
+  if (target_temperature < COMETBLUEBT_MIN_TEMP && mode != climate::ClimateMode::CLIMATE_MODE_OFF ) {
+      mode = climate::ClimateMode::CLIMATE_MODE_OFF;
+  }
+
+
   return true;
 }
 
-bool CometBlueClimate::query_id() {
-  uint8_t command[] = {PROP_ID_QUERY};
-  return send_command(command, sizeof(command));
-}
-
-bool CometBlue4Climate::query_state() {
-  if (!time_clock || !time_clock->now().is_valid()) {
-    ESP_LOGE(TAG, "Clock source for %10llx is not valid.", address);
-    return false;
-  }
-
-  auto now = time_clock->now();
+bool CometBlueClimate::set_temperature(float temperature) {
+  target_temperature = temperature;
 
   uint8_t command[] = {
-    PROP_INFO_QUERY,
-    uint8_t(now.year % 100),
-    now.month,
-    now.day_of_month,
-    now.hour,
-    now.minute,
-    now.second
+      0x80, uint8_t(temperature*2.0f), 0x80, 0x80, 0x80, 0x80, 0x80
   };
 
-  return send_command(command, sizeof(command));
-}
-
-bool CometBlueClimate::query_schedule(CometBlueDay day) {
-  if (day > CometBlue_LastDay) {
-    return false;
-  }
-
-  uint8_t command[] = {PROP_SCHEDULE_QUERY, day};
-  return send_command(command, sizeof(command));
-}
-
-bool CometBlueClimate::set_temperature(float temperature) {
-  uint8_t command[2];
-
-  if (temperature <= CometBlueBT_OFF_TEMP) {
-    command[0] = PROP_MODE_WRITE;
-    command[1] = uint8_t(CometBlueBT_OFF_TEMP * 2) | 0x40;
-  } else if (temperature >= CometBlueBT_ON_TEMP) {
-    command[0] = PROP_MODE_WRITE;
-    command[1] = uint8_t(CometBlueBT_ON_TEMP * 2) | 0x40;
-  } else {
-    command[0] = PROP_TEMPERATURE_WRITE;
-    command[1] = uint8_t(temperature * 2);
-  }
-
-  return send_command(command, sizeof(command));
+  return send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
 }
 
 bool CometBlueClimate::set_auto_mode() {
-  uint8_t command[] = {
-    PROP_MODE_WRITE,
-    0
-  };
+  get_temperature();
+  if (target_temperature<COMETBLUEBT_MIN_TEMP) {
+      set_temperature(COMETBLUEBT_MIN_TEMP);
+  }
 
-  return send_command(command, sizeof(command));
+  if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
+    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    status &= ~(1); // Unset manual mode flag    
+    uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
+    return send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+  }
+  return false;
 }
 
 bool CometBlueClimate::set_manual_mode() {
-  uint8_t command[] = {
-    PROP_MODE_WRITE,
-    0x40
-  };
+  get_temperature();
+  if (target_temperature<COMETBLUEBT_MIN_TEMP) {
+      set_temperature(COMETBLUEBT_MIN_TEMP);
+  }
 
-  return send_command(command, sizeof(command));
+  if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
+    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    status |=1; // Set manual mode flag    
+    uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
+    return send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+  }
+  
+  return false;
+
 }
 
-bool CometBlueClimate::set_boost_mode(bool enabled) {
-  uint8_t command[] = {
-    PROP_BOOST,
-    uint8_t(enabled ? 1 : 0)
-  };
+bool CometBlueClimate::set_off_mode() {
+  mode = climate::ClimateMode::CLIMATE_MODE_OFF;
+  set_temperature(COMETBLUEBT_OFF_TEMP);
+  
+  if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
+    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    status |=1; // Set manual mode flag
+    uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
+    return send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+  }
+  
+  return false;
+}
 
-  return send_command(command, sizeof(command));
+bool CometBlueClimate::set_boost_mode(bool enabled) {  
+  set_temperature(COMETBLUEBT_ON_TEMP);
+  
+  if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
+    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    status |=1; // Set manual mode flag
+    uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
+    return send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+  }
+  
+  return false;
 }
 
 bool CometBlueClimate::set_temperature_offset(float offset) {
-  // [-3,5 .. 0  .. 3,5 ]
-  // [00   .. 07 .. 0e ]
-
-  if (offset < -3.5 || offset > 3.5) {
-    return false;
-  }
-
-  uint8_t command[] = {
-    PROP_OFFSET,
-    uint8_t((offset + 3.5) * 2)
-  };
-
-  return send_command(command, sizeof(command));
+  return true;
 }
 
 bool CometBlueClimate::set_temperature_type(int eco) {
-  uint8_t command[] = {
-    eco ? PROP_ECO : PROP_COMFORT
-  };
-
-  return send_command(command, sizeof(command));
+  return true;
 }
 
 bool CometBlueClimate::set_temperature_presets(float comfort, float eco) {
-  uint8_t command[] = {
-    PROP_COMFORT_ECO_CONFIG,
-    temp_to_dev(comfort),
-    temp_to_dev(eco)
-  };
-
-  return send_command(command, sizeof(command));
+  return true;
 }
 
 bool CometBlueClimate::set_locked(bool locked) {
-  uint8_t command[] = {
-    PROP_LOCK,
-    uint8_t(locked ? 1 : 0)
-  };
-
-  return send_command(command, sizeof(command));
+  return true;
 }
 
 bool CometBlueClimate::set_window_config(int seconds, float temperature) {
-  if (seconds < 0 || seconds > 3600) {
-    return false;
-  }
-
-  uint8_t command[] = {
-    PROP_WINDOW_OPEN_CONFIG,
-    temp_to_dev(temperature),
-    uint8_t(seconds / 300)
-  };
-
-  return send_command(command, sizeof(command));
+  return true;
 }
 
-void CometBlueClimate::parse_client_notify(std::string data) {
-  if (data.size() >= 2 && data[0] == PROP_INFO_RETURN && data[1] == 0x1) {
-    defer("parse_notify", [this, data]() {
-      parse_state(data);
-    });
-  } else if (data.size() >= 1 && data[0] == PROP_SCHEDULE_RETURN) {
-    defer("parse_schedule_" + to_string(data[1]), [this, data]() {
-      parse_schedule(data);
-    });
-  } else if (data.size() >= 1 && data[0] == PROP_ID_RETURN) {
-    defer("parse_id", [this, data]() {
-      parse_id(data);
-    });
-  } else {
-    ESP_LOGW(TAG, "Received unknown characteristic from %10llx: %s.",
-      address,
-      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
-  }
-}

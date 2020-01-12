@@ -413,6 +413,34 @@ bool ESP32BLEClient::write(
   });
 }
 
+bool ESP32BLEClient::read(
+  uint16_t handle
+  )
+{
+  ESP32BLELock lock(this->lock);
+
+  if (state != Ready) {
+    return false;
+  }
+
+  auto read_func = esp_ble_gattc_read_char;
+  auto read_event = ESP_GATTC_READ_CHAR_EVT;
+
+  auto ret = GATT_LOG(read_func(
+    *gattc_if, *conn_id, handle, 
+    ESP_GATT_AUTH_REQ_NONE
+  ));
+  if (ret != ESP_OK) {
+    return false;
+  }
+ 
+  return wait_for_event(lock, read_event, timeout_ms, [this](const EventResult &result) {
+    this->readresult_value = result.param.read.value;
+    this->readresult_value_len = result.param.read.value_len;
+    return GATT_LOG(result.param.write.status) == ESP_GATT_OK;
+  });
+}
+
 bool ESP32BLEClient::register_notify(
   uint16_t handle, bool enable)
 {
