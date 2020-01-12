@@ -155,7 +155,7 @@ light:
           # channels: RGBW: to support additional W-channel
 ```
 
-There are two modes of operation:
+There are three modes of operation:
 
 - `MONO`: this supports 1 channel per LED (luminance), up-to 512 LEDs per universe
 - `RGB`: this supports 3 channels per LED (RGB), up-to 170 LEDs (3*170 = 510 bytes) per universe
