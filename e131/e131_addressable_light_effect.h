@@ -5,29 +5,32 @@
 
 #include "ESPAsyncE131.h"
 
+namespace esphome {
+namespace e131 {
+
 class E131Component;
 
 enum E131LightChannels {
+  E131_MONO = 1,
   E131_RGB = 3,
   E131_RGBW = 4
 };
 
-class E131LightEffect : public esphome::light::AddressableLightEffect {
+class E131AddressableLightEffect : public esphome::light::AddressableLightEffect {
 public:
-  E131LightEffect(const std::string &name);
+  E131AddressableLightEffect(const std::string &name);
 
 public:
   void start() override;
   void stop() override;
   void apply(esphome::light::AddressableLight &it, const esphome::light::ESPColor &current_color) override;
-  void process(int universe, const e131_packet_t &packet);
 
 public:
-  int data_per_universe() const;
-  int lights_per_universe() const;
-  int first_universe() const;
-  int last_universe() const;
-  int universe_count() const;
+  int get_data_per_universe() const;
+  int get_lights_per_universe() const;
+  int get_first_universe() const;
+  int get_last_universe() const;
+  int get_universe_count() const;
 
 public:
   void set_first_universe(int universe) {
@@ -47,7 +50,7 @@ public:
   }
 
 private:
-  void process_packet(esphome::light::AddressableLight &it);
+  bool process(int universe, const e131_packet_t &packet);
 
 private:
   int first_universe_{0};
@@ -55,4 +58,9 @@ private:
   E131LightChannels channels_{E131_RGB};
   esphome::light::AddressableLight *addressable_light_{nullptr};
   E131Component *e131_{nullptr};
+
+  friend class E131Component;
 };
+
+}
+}

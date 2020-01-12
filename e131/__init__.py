@@ -1,14 +1,14 @@
 import re
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import light
 from esphome.components.light.types import AddressableLightEffect
 from esphome.components.light.effects import register_effect, ADDRESSABLE_EFFECTS
 from esphome.const import CONF_ID, CONF_NAME, CONF_METHOD, CONF_CHANNELS
 from esphome.core import coroutine
 
-E131LightEffect = cg.global_ns.class_('E131LightEffect', AddressableLightEffect)
-E131Component = cg.global_ns.class_('E131Component', cg.Component)
+e131_ns = cg.esphome_ns.namespace('e131')
+E131AddressableLightEffect = e131_ns.class_('E131AddressableLightEffect', AddressableLightEffect)
+E131Component = e131_ns.class_('E131Component', cg.Component)
 
 METHODS = {
     'UNICAST': 'E131_UNICAST',
@@ -16,6 +16,7 @@ METHODS = {
 }
 
 CHANNELS = {
+    'MONO': 'E131_MONO',
     'RGB': 'E131_RGB',
     'RGBW': 'E131_RGBW'
 }
@@ -37,7 +38,7 @@ def register_addressable_effect(name, effect_type, default_name, schema, *extra_
     ADDRESSABLE_EFFECTS.append(name)
     return register_effect(name, effect_type, default_name, schema, *extra_validators)
 
-@register_addressable_effect('e131', E131LightEffect, "E1.31", {
+@register_addressable_effect('e131', E131AddressableLightEffect, "E1.31", {
     cv.GenerateID(CONF_E131_ID): cv.use_id(E131Component),
     cv.Required(CONF_UNIVERSE): cv.int_range(min=1, max=512),
     cv.Optional(CONF_CHANNELS, default='RGB'): cv.one_of(*CHANNELS, upper=True)
@@ -47,7 +48,7 @@ def e131_light_effect_to_code(config, effect_id):
 
     effect = cg.new_Pvariable(effect_id, config[CONF_NAME])
     cg.add(effect.set_first_universe(config[CONF_UNIVERSE]))
-    cg.add(effect.set_channels(getattr(cg.global_ns, CHANNELS[config[CONF_CHANNELS]])))
+    cg.add(effect.set_channels(getattr(e131_ns, CHANNELS[config[CONF_CHANNELS]])))
     cg.add(effect.set_e131(parent))
 
     # https://github.com/forkineye/ESPAsyncE131/blob/master/library.json

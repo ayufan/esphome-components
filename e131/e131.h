@@ -7,15 +7,18 @@
 #include <memory>
 #include <set>
 
-class E131LightEffect;
+namespace esphome {
+namespace e131 {
+
+class E131AddressableLightEffect;
 
 class E131Component : public esphome::Component {
 public:
   void loop() override;
 
 public:
-  void add_effect(E131LightEffect *light_effect);
-  void remove_effect(E131LightEffect *light_effect);
+  void add_effect(E131AddressableLightEffect *light_effect);
+  void remove_effect(E131AddressableLightEffect *light_effect);
 
 public:
   void set_method(e131_listen_t listen_method) {
@@ -24,11 +27,14 @@ public:
 
 private:
   void rebind();
-  void process(int universe, const e131_packet_t &packet);
+  bool process(int universe, const e131_packet_t &packet);
 
 private:
   e131_listen_t listen_method_{E131_MULTICAST};
   std::unique_ptr<ESPAsyncE131> e131_client_;
-  std::set<E131LightEffect*> light_effects_;
+  std::set<E131AddressableLightEffect*> light_effects_;
   bool should_rebind_{false};
 };
+
+}
+}

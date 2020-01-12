@@ -135,7 +135,7 @@ switch:
 
 A component to support [E1.31](https://www.doityourselfchristmas.com/wiki/index.php?title=E1.31_(Streaming-ACN)_Protocol). This allows to control addressable LEDs over WiFi, by pushing data right into LEDs.
 
-The most popular application would be: [JINX](http://www.live-leds.de/jinx-v1-3-with-resizable-mainwindow-real-dmx-and-sacne1-31/).
+The most popular application to push data would be: [JINX](http://www.live-leds.de/jinx-v1-3-with-resizable-mainwindow-real-dmx-and-sacne1-31/).
 
 ```yaml
 e131:
@@ -157,8 +157,9 @@ light:
 
 There are two modes of operation:
 
-- `RGB`: this supports 3 components per channel (RGB), up-to 170 LEDs (3*170 = 510 bytes) per universe
-- `RGBW`: this supports 4 components per channel (RGBW), up-to 128 LEDs (4*128 = 512 bytes) per universe
+- `MONO`: this supports 1 channel per LED (luminance), up-to 512 LEDs per universe
+- `RGB`: this supports 3 channels per LED (RGB), up-to 170 LEDs (3*170 = 510 bytes) per universe
+- `RGBW`: this supports 4 channels per LED (RGBW), up-to 128 LEDs (4*128 = 512 bytes) per universe
 
 If there's more LEDs than allowed per-universe, additional universe will be used.
 In the above example of 189 LEDs, first 170 LEDs will be assigned to 1 universe,
@@ -167,8 +168,8 @@ the rest of 19 LEDs will be automatically assigned to 2 universe.
 It is possible to enable multiple light platforms to listen to the same universe concurrently,
 allowing to replicate the behaviour on multiple strips.
 
-Sometimes it might be advised to improved stability if `multicast` mode does not work
-to connect directly via IP to the esp-node.
+Sometimes it might be advised to improved of connection. By default `multicast` is used,
+but in some circumstances it might be advised to connect directly via IP to the esp-node.
 
 ### 2.4. `memory`
 

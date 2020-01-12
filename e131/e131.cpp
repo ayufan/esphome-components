@@ -1,18 +1,27 @@
 #include "e131.h"
-#include "e131_light_effect.h"
+#include "e131_addressable_light_effect.h"
 #include "esphome/core/log.h"
 
 #define MAX_UNIVERSES 512
 #define TAG "e131"
 
-using namespace esphome;
+namespace esphome {
+namespace e131 {
 
-void E131Component::add_effect(E131LightEffect *light_effect) {
+void E131Component::add_effect(E131AddressableLightEffect *light_effect) {
+  ESP_LOGD(TAG, "Registering '%s' for universes %d-%d.",
+    light_effect->get_name().c_str(),
+    light_effect->get_first_universe(), light_effect->get_last_universe());
+
   light_effects_.insert(light_effect);
   should_rebind_ = true;
 }
 
-void E131Component::remove_effect(E131LightEffect *light_effect) {
+void E131Component::remove_effect(E131AddressableLightEffect *light_effect) {
+  ESP_LOGD(TAG, "Unregistering '%s' for universes %d-%d.",
+    light_effect->get_name().c_str(),
+    light_effect->get_first_universe(), light_effect->get_last_universe());
+
   light_effects_.erase(light_effect);
   should_rebind_ = true;
 }
@@ -31,7 +40,12 @@ void E131Component::loop() {
     e131_packet_t packet;
     e131_client_->pull(&packet); // Pull packet from ring buffer
     auto universe = htons(packet.universe);
-    process(universe, packet);
+    auto handled = process(universe, packet);
+
+    if (!handled) {
+      ESP_LOGV(TAG, "Ignored packet for %d universe of size %d.",
+        universe, packet.property_value_count);
+    }
   }
 }
 
@@ -43,9 +57,9 @@ void E131Component::rebind() {
   int universe_count = 0;
 
   for (auto light_effect : light_effects_) {
-    first_universe = std::min(first_universe, light_effect->first_universe());
-    last_universe = std::max(last_universe, light_effect->last_universe());
-    universe_count += light_effect->universe_count();
+    first_universe = std::min(first_universe, light_effect->get_first_universe());
+    last_universe = std::max(last_universe, light_effect->get_last_universe());
+    universe_count += light_effect->get_universe_count();
   }
 
   if (!universe_count) {
@@ -62,13 +76,23 @@ void E131Component::rebind() {
     ESP_LOGI(TAG, "Started E1.31 for universes %d-%d",
       first_universe, last_universe);
   } else {
-    ESP_LOGW(TAG, "Failed to start E1.31 for %s universes %d-%d",
+    ESP_LOGW(TAG, "Failed to start E1.31 for universes %d-%d",
       first_universe, last_universe);
   }
 }
 
-void E131Component::process(int universe, const e131_packet_t &packet) {
+bool E131Component::process(int universe, const e131_packet_t &packet) {
+  bool handled = false;
+
+  ESP_LOGV(TAG, "Received E1.31 packet for %d universe, with %d bytes",
+    universe, packet.property_value_count);
+
   for (auto light_effect : light_effects_) {
-    light_effect->process(universe, packet);
+    handled = light_effect->process(universe, packet) || handled;
   }
+
+  return handled;
+}
+
+}
 }
