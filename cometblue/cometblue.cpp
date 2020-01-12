@@ -43,8 +43,7 @@ void CometBlueClimate::reset_state() {
 void CometBlueClimate::control(const ClimateCall &call) {
   ESP_LOGV(TAG, "Control call.");
   bool success = with_connection([this, call]() {
-
-    query_state();
+    send_pincode();
    
     if (call.get_target_temperature().has_value()) {
       auto temperature = *call.get_target_temperature();
@@ -53,7 +52,6 @@ void CometBlueClimate::control(const ClimateCall &call) {
 
     if (call.get_mode().has_value()) {
       auto mode = *call.get_mode();
-      this->mode = mode;
 
       switch (mode) {
       default:
