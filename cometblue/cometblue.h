@@ -40,8 +40,11 @@ public:
   esphome::climate::ClimateTraits traits();
   float get_setup_priority() const override { return esphome::setup_priority::LATE; }
   void set_address(uint64_t new_address) { address = new_address; }
+  void set_pin(uint32_t new_pin) { pin = new_pin; }
+  void set_temperature_offset(float offset) { temperature_offset = offset; }
   void set_time(esphome::time::RealTimeClock *clock) { time_clock = clock; }
   void set_temperature_sensor(esphome::sensor::Sensor *sensor) { temperature_sensor = sensor; };
+  void set_window_open_config(int8_t sensitivity, int8_t minutes) { window_open_sensitivity = sensitivity; window_open_minutes = minutes; }
 
 public:
   void control(const esphome::climate::ClimateCall &call) override;
@@ -64,20 +67,17 @@ private:
   bool set_auto_mode();
   bool set_manual_mode();
   bool set_off_mode();
-  bool set_boost_mode(bool enabled);
-  // bool set_away_mode()
   bool set_temperature(float temperature);
-  bool set_temperature_type(int eco);
-  bool set_temperature_offset(float offset);
-  bool set_temperature_presets(float comfort, float eco);
-  bool set_window_config(int seconds, float temperature);
-  bool set_locked(bool locked);
 
 private:
   void parse_flags(const uint8_t *data);
   void parse_temperature(const uint8_t *data);
   
   uint64_t address{0};
+  uint32_t pin;
+  float temperature_offset;
+  int8_t window_open_minutes;
+  int8_t window_open_sensitivity;
   esphome::time::RealTimeClock *time_clock{nullptr};
   /// The sensor used for getting the current temperature
   esphome::sensor::Sensor *temperature_sensor{nullptr};

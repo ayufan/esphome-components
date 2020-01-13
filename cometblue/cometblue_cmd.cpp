@@ -121,11 +121,11 @@ bool CometBlueClimate::read_value(esp_bt_uuid_t uuid) {
 }
 
 bool CometBlueClimate::send_pincode() {
-  uint8_t command[] = {
-      0, 0, 0, 0 // pincode still hardcoded
-  };
-
-  return send_command(command, sizeof(command), PROP_PIN_CHARACTERISTIC_UUID);
+  if (pin != -1) {
+    uint8_t pin_encoded[4] = {(uint8_t)(pin & 0xFF), (uint8_t)((pin >> 8) & 0xFF), (uint8_t)((pin >> 16) & 0xFF), (uint8_t)((pin >> 24) & 0xFF) };
+    return send_command(pin_encoded, sizeof(pin_encoded), PROP_PIN_CHARACTERISTIC_UUID);
+  }
+  return true;
 }
 
 bool CometBlueClimate::get_time() {
@@ -151,14 +151,6 @@ bool CometBlueClimate::get_temperature() {
   bool result = read_value(PROP_TEMPERATURE_CHARACTERISTIC_UUID);
   if (result) {
     current_temperature = ((float)ble_client->readresult_value[0]) / 2.0f; 
-    
-    if (mode != climate::ClimateMode::CLIMATE_MODE_OFF) {
-      target_temperature = ((float)ble_client->readresult_value[1] / 2.0f);
-    }
-   
-    // Offset= ble_client->readresult_value[4] / 2.0f;
-    // Window open detection= ble_client->readresult_value[5] ;
-    // Window open minutes= ble_client->readresult_value[6] ;    
   }
   
   return result;
@@ -179,12 +171,14 @@ bool CometBlueClimate::query_state() {
 
 bool CometBlueClimate::set_temperature(float temperature) {
   target_temperature = temperature;
+  if (mode != climate::ClimateMode::CLIMATE_MODE_OFF) {
+    uint8_t command[] = {
+        0x80, uint8_t(temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
+    };
 
-  uint8_t command[] = {
-      0x80, uint8_t(temperature*2.0f), 0x80, 0x80, 0x80, 0x80, 0x80
-  };
-
-  return send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+    return send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+  }
+  return true;
 }
 
 bool CometBlueClimate::set_auto_mode() {
@@ -199,13 +193,12 @@ bool CometBlueClimate::set_manual_mode() {
     send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
   
     uint8_t command[] = {
-        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, 0x80, 0x80, 0x80
+        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
     };
     send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
 
     mode = climate::ClimateMode::CLIMATE_MODE_HEAT;
     return true;
-
   }
   
   return false;
@@ -227,34 +220,8 @@ bool CometBlueClimate::set_off_mode() {
     mode = climate::ClimateMode::CLIMATE_MODE_OFF;
 
     return true;
-
-
   }
   
   return false;
-}
-
-bool CometBlueClimate::set_boost_mode(bool enabled) {  
-  return true;
-}
-
-bool CometBlueClimate::set_temperature_offset(float offset) {
-  return true;
-}
-
-bool CometBlueClimate::set_temperature_type(int eco) {
-  return true;
-}
-
-bool CometBlueClimate::set_temperature_presets(float comfort, float eco) {
-  return true;
-}
-
-bool CometBlueClimate::set_locked(bool locked) {
-  return true;
-}
-
-bool CometBlueClimate::set_window_config(int seconds, float temperature) {
-  return true;
 }
 

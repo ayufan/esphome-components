@@ -34,7 +34,6 @@ void CometBlueClimate::update() {
   });
 
   this->publish_state();
-
 }
 
 void CometBlueClimate::reset_state() {
