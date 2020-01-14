@@ -138,7 +138,7 @@ A component to support [E1.31](https://www.doityourselfchristmas.com/wiki/index.
 The most popular application to push data would be: [JINX](http://www.live-leds.de/jinx-v1-3-with-resizable-mainwindow-real-dmx-and-sacne1-31/).
 
 ```yaml
-e131:
+e131_custom:
   method: multicast # Register E1.31 to Multicast group
   # method: unicast # Listen only on port
 
