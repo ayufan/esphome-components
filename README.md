@@ -139,7 +139,12 @@ Simple component that periodically prints free memory of node.
 memory:
 ```
 ### 2.4 Comet Blue
+Basic component to:
+* get the current temperature
+* set the target temperature
+This component doesn't support scheduling as I do this through Home Assistant by changing the target temperature.
 
+#### 2.4.1 Example configuration
 ```yaml
 wifi:
   ssid: "..."
@@ -172,7 +177,14 @@ climate:
     window_open_sensitivity: 4
     window_open_minutes: 10
 
-```yaml
+switch:
+  - platform: template
+    name: "Refresh Radiator 1"
+    lambda: "return false;"
+    turn_on_action:
+      - component.update: trv_cb1
+
+```
 
 ## 3. Author & License
 
