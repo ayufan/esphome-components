@@ -43,7 +43,6 @@ public:
   void set_pin(uint32_t new_pin) { pin = new_pin; }
   void set_temperature_offset(float offset) { temperature_offset = offset; }
   void set_time(esphome::time::RealTimeClock *clock) { time_clock = clock; }
-  void set_temperature_sensor(esphome::sensor::Sensor *sensor) { temperature_sensor = sensor; };
   void set_window_open_config(int8_t sensitivity, int8_t minutes) { window_open_sensitivity = sensitivity; window_open_minutes = minutes; }
 
 public:
@@ -82,9 +81,7 @@ private:
   uint8_t window_open_minutes;
   uint8_t window_open_sensitivity;
   esphome::time::RealTimeClock *time_clock{nullptr};
-  /// The sensor used for getting the current temperature
-  esphome::sensor::Sensor *temperature_sensor{nullptr};
-  std::unique_ptr<ESP32BLEClient> ble_client;
+  std::unique_ptr<ESP32BLEClient> ble_client;  
 };
 
 #endif

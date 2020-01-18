@@ -9,15 +9,6 @@ using namespace esphome;
 
 static const char *TAG = "cometblue_cmd";
 
-static uint8_t temp_to_dev(const float &value) {
-  if (value < COMETBLUEBT_MIN_TEMP)
-    return uint8_t(COMETBLUEBT_MIN_TEMP * 2);
-  else if (value > COMETBLUEBT_MAX_TEMP)
-    return uint8_t(COMETBLUEBT_MAX_TEMP * 2);
-  else
-    return uint8_t(value * 2);
-}
-
 bool CometBlueClimate::with_connection(std::function<bool()> handler) {
   bool success = true;
 
@@ -135,14 +126,14 @@ bool CometBlueClimate::get_time() {
 
 bool CometBlueClimate::get_flags() {
   if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
-    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
+    uint8_t status = ble_client->readresult_value[0];
     if (status && 1==1) {
       mode = climate::CLIMATE_MODE_HEAT;
     } else {
       // Not yet supported
       mode = climate::CLIMATE_MODE_AUTO;
     }
-
+   
     return true;
   }
   return false;
@@ -158,7 +149,7 @@ bool CometBlueClimate::get_temperature() {
 }
 
 bool CometBlueClimate::query_state() {
-  return send_pincode() && get_flags() && get_temperature();
+  return get_flags() && get_temperature();
 }
 
 bool CometBlueClimate::set_temperature(float temperature) {  

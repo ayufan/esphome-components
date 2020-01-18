@@ -3,9 +3,8 @@ import esphome.config_validation as cv
 from esphome.components import climate, sensor, time
 from esphome.components.remote_base import CONF_TRANSMITTER_ID
 from esphome.const import CONF_ID, CONF_TIME_ID, CONF_MAC_ADDRESS, \
-    ESP_PLATFORM_ESP32, \
-    UNIT_PERCENT, ICON_PERCENT
-
+    ESP_PLATFORM_ESP32
+    
 ESP_PLATFORMS = [ESP_PLATFORM_ESP32]
 CONFLICTS_WITH = ['esp32_ble_tracker']
 DEPENDENCIES = ['time']
@@ -14,11 +13,7 @@ AUTO_LOAD = ['sensor', 'esp32_ble_clients']
 CONF_TEMPERATURE_OFFSET = 'temperature_offset'
 CONF_WINDOW_OPEN_SENSITIVITY = 'window_open_sensitivity'
 CONF_WINDOW_OPEN_MINUTES = 'window_open_minutes'
-CONF_VALVE = 'valve'
-CONF_MOTORMOVING = 'motormoving'
-CONF_SATISFIED = 'satisfied'
 CONF_PIN = 'pin'
-CONF_TEMP = 'temperature_sensor'
 
 CometBlueClimate = cg.global_ns.class_('CometBlueClimate', climate.Climate, cg.PollingComponent)
 
@@ -29,8 +24,7 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.Optional(CONF_PIN, default=-1): cv.int_range(min_included=0, max_included=9999999),
     cv.Optional(CONF_TEMPERATURE_OFFSET, default=0): cv.float_range(min_included=-3, max_included=+3),
     cv.Optional(CONF_WINDOW_OPEN_SENSITIVITY, default=4): cv.int_range(min_included=0, max_included=4),
-    cv.Optional(CONF_WINDOW_OPEN_MINUTES, default=4): cv.int_range(min_included=0, max_included=4),
-    cv.Optional(CONF_TEMP): cv.use_id(sensor.Sensor)
+    cv.Optional(CONF_WINDOW_OPEN_MINUTES, default=10): cv.int_range(min_included=0, max_included=60),
 }).extend(cv.polling_component_schema('4h')))
 
 
@@ -46,11 +40,3 @@ def to_code(config):
 
     time_ = yield cg.get_variable(config[CONF_TIME_ID])
     cg.add(var.set_time(time_))
-
-    if CONF_TEMP in config:
-        sens = yield cg.get_variable(config[CONF_TEMP])
-        cg.add(var.set_temperature_sensor(sens))
-
-    if CONF_VALVE in config:
-        sens = yield sensor.new_sensor(config[CONF_VALVE])
-        cg.add(var.set_valve(sens))
