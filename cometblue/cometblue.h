@@ -79,8 +79,8 @@ private:
   uint64_t address{0};
   uint32_t pin;
   float temperature_offset;
-  int8_t window_open_minutes;
-  int8_t window_open_sensitivity;
+  uint8_t window_open_minutes;
+  uint8_t window_open_sensitivity;
   esphome::time::RealTimeClock *time_clock{nullptr};
   /// The sensor used for getting the current temperature
   esphome::sensor::Sensor *temperature_sensor{nullptr};

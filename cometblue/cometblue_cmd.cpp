@@ -59,6 +59,8 @@ bool CometBlueClimate::connect() {
     return false;
   }
 
+  // The Comet Blue does not use "Notifications" to retrieve the device state.
+
   ESP_LOGV(TAG, "Connected to %10llx.", address);
   new_ble_client.swap(ble_client);
   return true;
@@ -73,29 +75,29 @@ void CometBlueClimate::disconnect() {
   ESP_LOGV(TAG, "Disconnected from %10llx.", address);
 }
 
-bool CometBlueClimate::write_value(void *command, uint16_t length, esp_bt_uuid_t uuid) {
+bool CometBlueClimate::write_value(void *data, uint16_t length, esp_bt_uuid_t uuid) {
   if (!ble_client || !ble_client->is_connected()) {
     return false;
   }
 
-  uint16_t command_handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
-  if (!command_handle) {
-    ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
+  uint16_t handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
+  if (!handle) {
+    ESP_LOGE(TAG, "Cannot find handle for %10llx.", address);
     return false;
   }
 
   bool result = ble_client->write(
     ESP32BLEClient::Characteristic,
-    command_handle,
-    command, length,
+    handle,
+    data, length,
     true);
 
   if (result) {
     ESP_LOGV(TAG, "Sent of `%s` to %10llx to handle %04x.",
-      hexencode((const uint8_t*)command, length).c_str(), address, command_handle);
+      hexencode((const uint8_t*)data, length).c_str(), address, handle);
   } else {
     ESP_LOGV(TAG, "Send of `%s` to %10llx to handle %04x: %d",
-      hexencode((const uint8_t*)command, length).c_str(), address, command_handle, result);
+      hexencode((const uint8_t*)data, length).c_str(), address, handle, result);
   }
 
   return result;
@@ -106,14 +108,14 @@ bool CometBlueClimate::read_value(esp_bt_uuid_t uuid) {
     return false;
   }
 
-  uint16_t command_handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
-  if (!command_handle) {
-    ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
+  uint16_t handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
+  if (!handle) {
+    ESP_LOGE(TAG, "Cannot find handle for %10llx.", address);
     return false;
   }
 
-  bool result = ble_client->read(command_handle);
-  ESP_LOGV(TAG, "read from %10llx from handle %04x with result %d.", address, command_handle, result);
+  bool result = ble_client->read(handle);
+  ESP_LOGV(TAG, "read from %10llx from handle %04x with result %d.", address, handle, result);
 
   return result;
 }
@@ -155,19 +157,17 @@ bool CometBlueClimate::get_temperature() {
   return false;
 }
 
-
-
 bool CometBlueClimate::query_state() {
   return send_pincode() && get_flags() && get_temperature();
 }
 
 bool CometBlueClimate::set_temperature(float temperature) {  
   if (mode != climate::ClimateMode::CLIMATE_MODE_OFF) {
-    uint8_t command[] = {
+    uint8_t data[] = {
         0x80, uint8_t(temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
     };
 
-    if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+    if (!write_value(data, sizeof(data), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
       return false;
     }
   }
@@ -193,10 +193,10 @@ bool CometBlueClimate::set_manual_mode() {
       return false;
     }
   
-    uint8_t command[] = {
-        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), uint8_t(window_open_sensitivity), uint8_t(window_open_minutes)
+    uint8_t data[] = {
+        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
     };
-    if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+    if (!write_value(data, sizeof(data), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
       return false;
     }
 
@@ -221,10 +221,10 @@ bool CometBlueClimate::set_off_mode() {
       }
 
       // Set target-temperature at 0 degrees
-      uint8_t command[] = {
+      uint8_t data[] = {
           0x80, 0x00, 0x80, 0x80, 0x80, 0x80, 0x80
       };
-      if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+      if (!write_value(data, sizeof(data), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
         return false;
       }
 
