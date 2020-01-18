@@ -96,7 +96,7 @@ private:
 private:
   uint64_t address64{0};
   esp_bd_addr_t address{0,};
-  int timeout_ms{10000};
+  int timeout_ms{5000};
   esp_ble_addr_type_t address_type{BLE_ADDR_TYPE_PUBLIC};
   esphome::optional<uint16_t> app_id;
   esphome::optional<esp_gatt_if_t> gattc_if;
