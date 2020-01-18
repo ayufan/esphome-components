@@ -138,6 +138,41 @@ Simple component that periodically prints free memory of node.
 ```yaml
 memory:
 ```
+### 2.4 Comet Blue
+
+```yaml
+wifi:
+  ssid: "..."
+  password: "..."
+  power_save_mode: none
+
+debug:
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+time:
+  - platform: sntp
+    id: sntp_time
+
+climate:
+  - platform: cometblue
+    pin: 0000
+    id: trv_cb1
+    name: Radiator 1
+    mac_address: 01:23:45:56:78:90
+    update_interval: 5min
+    temperature_offset: 0
+    window_open_sensitivity: 4
+    window_open_minutes: 10
+
+```yaml
 
 ## 3. Author & License
 
