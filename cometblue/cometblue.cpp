@@ -27,54 +27,98 @@ void CometBlueClimate::setup() {
   }
 }
 
-// Read all data and update state
+
 void CometBlueClimate::update() {
+  cancel_timeout("update_retry");
+
+  update_retry(3);
+}
+
+void CometBlueClimate::update_retry(int tries) {
+  ESP_LOGI(TAG, "Requesting update of %10llx...", address);
+
   bool success = with_connection([this]() {
     return query_state();
   });
 
-  this->publish_state();
+  if (success) {
+    publish_state();
+  }
+
+  if (success) {
+    ESP_LOGI(TAG, "Update of %10llx succeeded.", address);
+  } else if (--tries > 0) {
+    ESP_LOGW(TAG, "Update of %10llx failed. Tries left: %d.", address, tries);
+    set_timeout("update_retry", 3000, [this, tries]() {
+      update_retry(tries);
+    });
+  } else {
+    ESP_LOGW(TAG, "Update of %10llx failed. Too many tries.", address);
+    reset_state();
+  }
 }
 
 void CometBlueClimate::reset_state() {
+
 }
 
 void CometBlueClimate::control(const ClimateCall &call) {
-  ESP_LOGV(TAG, "Control call.");
+  cancel_timeout("control_retry");
+  ClimateCall call_data = call;
+  defer("control_retry", [this, call]() {
+    control_retry(call, 3);
+  });
+}
+
+void CometBlueClimate::control_retry(ClimateCall call, int tries) {
+  ESP_LOGI(TAG, "Requesting climate control of %10llx...", address);
+
   bool success = with_connection([this, call]() {
-    send_pincode();
-   
+    int calls = 0;
+
+    calls += send_pincode();
+
     if (call.get_target_temperature().has_value()) {
-      auto temperature = *call.get_target_temperature();
-      set_temperature(temperature);
+      calls += set_temperature(*call.get_target_temperature());
     }
 
     if (call.get_mode().has_value()) {
-      auto mode = *call.get_mode();
-
-      switch (mode) {
-      default:
-      case CLIMATE_MODE_AUTO:
-        set_auto_mode();
-        break;
-      
+      switch (*call.get_mode()) {
+      default:      
       case CLIMATE_MODE_HEAT:
-        set_manual_mode();
+        calls += set_manual_mode();
         break;
       
       case CLIMATE_MODE_OFF:
-        set_off_mode();
+        calls += set_off_mode();
         break;
-      }      
+      }
     }
 
-    // Publish updated state   
-    this->publish_state();
+    if (!calls) {
+      calls += query_state();
+    }
 
-    return true;
+    if (!calls) {
+      publish_state();
+    }
+
+    return calls > 0;
   });
-  
+
+  if (success) {
+    ESP_LOGW(TAG, "Climate control of %10llx succeeded.", address);
+  } else if (--tries > 0) {
+    ESP_LOGW(TAG, "Climate control of %10llx failed. Tries left: %d.", address, tries);
+    set_timeout("control_retry", 3000, [this, call, tries]() {
+      control_retry(call, tries);
+    });
+  } else {
+    ESP_LOGW(TAG, "Climate control of %10llx failed. Too many tries.", address);
+  }
 }
+
+
 
 ClimateTraits CometBlueClimate::traits() {
   auto traits = ClimateTraits();

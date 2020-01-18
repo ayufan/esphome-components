@@ -54,9 +54,12 @@ private:
   bool with_connection(std::function<bool()> handler);
   bool connect();
   void disconnect();
-  bool send_command(void *command, uint16_t length, esp_bt_uuid_t uuid);
+  bool write_value(void *command, uint16_t length, esp_bt_uuid_t uuid);
   bool read_value(esp_bt_uuid_t uuid);
   void reset_state();
+  void update_retry(int retry);
+  void control_retry(esphome::climate::ClimateCall call, int retry);
+  
   bool send_pincode();
   bool get_time();
   bool get_temperature();

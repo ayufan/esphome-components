@@ -73,13 +73,12 @@ void CometBlueClimate::disconnect() {
   ESP_LOGV(TAG, "Disconnected from %10llx.", address);
 }
 
-bool CometBlueClimate::send_command(void *command, uint16_t length, esp_bt_uuid_t uuid) {
-  if (!ble_client) {
+bool CometBlueClimate::write_value(void *command, uint16_t length, esp_bt_uuid_t uuid) {
+  if (!ble_client || !ble_client->is_connected()) {
     return false;
   }
 
-  uint16_t command_handle = ble_client->get_characteristic(
-    PROP_SERVICE_UUID, uuid);
+  uint16_t command_handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
   if (!command_handle) {
     ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
     return false;
@@ -103,12 +102,11 @@ bool CometBlueClimate::send_command(void *command, uint16_t length, esp_bt_uuid_
 }
 
 bool CometBlueClimate::read_value(esp_bt_uuid_t uuid) {
-  if (!ble_client) {
+  if (!ble_client || !ble_client->is_connected()) {
     return false;
   }
 
-  uint16_t command_handle = ble_client->get_characteristic(
-    PROP_SERVICE_UUID, uuid);
+  uint16_t command_handle = ble_client->get_characteristic(PROP_SERVICE_UUID, uuid);
   if (!command_handle) {
     ESP_LOGE(TAG, "Cannot find command handle for %10llx.", address);
     return false;
@@ -123,14 +121,14 @@ bool CometBlueClimate::read_value(esp_bt_uuid_t uuid) {
 bool CometBlueClimate::send_pincode() {
   if (pin != -1) {
     uint8_t pin_encoded[4] = {(uint8_t)(pin & 0xFF), (uint8_t)((pin >> 8) & 0xFF), (uint8_t)((pin >> 16) & 0xFF), (uint8_t)((pin >> 24) & 0xFF) };
-    return send_command(pin_encoded, sizeof(pin_encoded), PROP_PIN_CHARACTERISTIC_UUID);
+    return write_value(pin_encoded, sizeof(pin_encoded), PROP_PIN_CHARACTERISTIC_UUID);
   }
   return true;
 }
 
 bool CometBlueClimate::get_time() {
-
-  return read_value(PROP_TIME_CHARACTERISTIC_UUID);
+  // Not yet implemented
+  return false;
 }
 
 bool CometBlueClimate::get_flags() {
@@ -139,6 +137,7 @@ bool CometBlueClimate::get_flags() {
     if (status && 1==1) {
       mode = climate::CLIMATE_MODE_HEAT;
     } else {
+      // Not yet supported
       mode = climate::CLIMATE_MODE_AUTO;
     }
 
@@ -148,54 +147,58 @@ bool CometBlueClimate::get_flags() {
 }
 
 bool CometBlueClimate::get_temperature() {
-  bool result = read_value(PROP_TEMPERATURE_CHARACTERISTIC_UUID);
-  if (result) {
+  if (read_value(PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
     current_temperature = ((float)ble_client->readresult_value[0]) / 2.0f; 
+    return true;
   }
   
-  return result;
+  return false;
 }
 
 
 
 bool CometBlueClimate::query_state() {
-
-  send_pincode();
-
-  get_flags();
-
-  get_temperature();
-
-  return true;
+  return send_pincode() && get_flags() && get_temperature();
 }
 
-bool CometBlueClimate::set_temperature(float temperature) {
-  target_temperature = temperature;
+bool CometBlueClimate::set_temperature(float temperature) {  
   if (mode != climate::ClimateMode::CLIMATE_MODE_OFF) {
     uint8_t command[] = {
         0x80, uint8_t(temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
     };
 
-    return send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+    if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+      return false;
+    }
   }
+
+  target_temperature = temperature;
   return true;
 }
 
 bool CometBlueClimate::set_auto_mode() {
-  return true;
+  // Not implemented
+  return false;
 }
 
 bool CometBlueClimate::set_manual_mode() {
   if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
     uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
-    status |=1; // Set manual mode flag    
+    
+    // Set manual mode flag
+    status |=1;     
+
     uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
-    send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+    if (!write_value(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID)) {
+      return false;
+    }
   
     uint8_t command[] = {
-        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), window_open_sensitivity, window_open_minutes
+        0x80, uint8_t(target_temperature*2.0f), 0x80, 0x80, uint8_t(temperature_offset*2.0f), uint8_t(window_open_sensitivity), uint8_t(window_open_minutes)
     };
-    send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+    if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+      return false;
+    }
 
     mode = climate::ClimateMode::CLIMATE_MODE_HEAT;
     return true;
@@ -207,19 +210,27 @@ bool CometBlueClimate::set_manual_mode() {
 
 bool CometBlueClimate::set_off_mode() {  
     if (read_value(PROP_FLAGS_CHARACTERISTIC_UUID)) {
-    uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
-    status |=1; // Set manual mode flag
-    uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
-    send_command(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID);
+      uint32_t status = (((uint32_t)ble_client->readresult_value[2]) << 16) | (((uint32_t)ble_client->readresult_value[1]) << 8) | ((uint32_t)ble_client->readresult_value[0]);
 
-    uint8_t command[] = {
-        0x80, 0x00, 0x80, 0x80, 0x80, 0x80, 0x80
-    };
-    send_command(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID);
+      // Set manual mode flag
+      status |=1; 
 
-    mode = climate::ClimateMode::CLIMATE_MODE_OFF;
+      uint8_t statusencoded[3] = {(uint8_t)(status & 0xFF), (uint8_t)((status >> 8) & 0xFF), (uint8_t)((status >> 16) & 0xFF)};
+      if (!write_value(statusencoded, sizeof(statusencoded), PROP_FLAGS_CHARACTERISTIC_UUID)) {
+        return false;
+      }
 
-    return true;
+      // Set target-temperature at 0 degrees
+      uint8_t command[] = {
+          0x80, 0x00, 0x80, 0x80, 0x80, 0x80, 0x80
+      };
+      if (!write_value(command, sizeof(command), PROP_TEMPERATURE_CHARACTERISTIC_UUID)) {
+        return false;
+      }
+
+      mode = climate::ClimateMode::CLIMATE_MODE_OFF;
+
+      return true;
   }
   
   return false;
