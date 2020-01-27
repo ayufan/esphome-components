@@ -8,7 +8,7 @@ debug_ns = cg.esphome_ns.namespace('debug')
 MemoryComponent = debug_ns.class_('MemoryComponent', cg.PollingComponent)
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(MemoryComponent),
-}).extend(cv.polling_component_schema('1m'))
+}).extend(cv.polling_component_schema('1min'))
 
 
 def to_code(config):
