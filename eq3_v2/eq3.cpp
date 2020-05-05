@@ -34,6 +34,9 @@ void EQ3Climate::setup() {
       this->publish_state();
     });
   }
+  else{
+      this->current_temperature = this->target_temperature;
+  }
 
 }
 
@@ -152,6 +155,9 @@ void EQ3Climate::control_retry(ClimateCall call, int tries) {
 
   if (success) {
     ESP_LOGW(TAG, "Climate control of %10llx succeeded.", address);
+    if (!this->temperature_sensor) {
+      this->current_temperature = *call.get_target_temperature();
+    }
   } else if (--tries > 0) {
     ESP_LOGW(TAG, "Climate control of %10llx failed. Tries left: %d.", address, tries);
     set_timeout("control_retry", 3000, [this, call, tries]() {
@@ -273,9 +279,7 @@ void EQ3Climate::parse_id(const std::string &data) {
 ClimateTraits EQ3Climate::traits() {
   auto traits = ClimateTraits();
   traits.set_supports_auto_mode(true);
-  if (this->temperature_sensor) {
-    traits.set_supports_current_temperature(true);
-  }
+  traits.set_supports_current_temperature(true);
   traits.set_supports_heat_mode(true);
   traits.set_supports_away(false); // currently not working
   traits.set_visual_min_temperature(EQ3BT_MIN_TEMP);
