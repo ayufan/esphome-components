@@ -171,7 +171,53 @@ allowing to replicate the behaviour on multiple strips.
 Sometimes it might be advised to improved of connection. By default `multicast` is used,
 but in some circumstances it might be advised to connect directly via IP to the esp-node.
 
-### 2.4. `memory`
+### 2.4. `adalight`
+
+A component to support [Adalight](https://learn.adafruit.com/adalight-diy-ambient-tv-lighting). This allows to control addressable LEDs over UART, by pushing data right into LEDs.
+
+The most useful to use [Prismatik](https://github.com/psieg/Lightpack) to create an immersive effect on PC.
+
+```yaml
+adalight:
+
+uart:
+  - id: adalight_uart
+    tx_pin: TX
+    rx_pin: RX
+    baud_rate: 115200
+
+light:
+  - platform: neopixelbus
+    pin: D4
+    method: ESP8266_UART1
+    num_leds: 189
+    name: LEDs
+    effects:
+      - adalight:
+          uart_id: adalight_uart
+```
+
+### 2.5. `WLED`
+
+A component to support [WLED](https://github.com/Aircoookie/WLED/wiki/UDP-Realtime-Control). This allows to control addressable LEDs over WiFi/UDP, by pushing data right into LEDs.
+
+The most useful to use [Prismatik](https://github.com/psieg/Lightpack) to create an immersive effect on PC.
+
+```yaml
+wled:
+
+light:
+  - platform: neopixelbus
+    pin: D4
+    method: ESP8266_UART1
+    num_leds: 189
+    name: LEDs
+    effects:
+      - wled:
+          # port: 21324 # optional port to allow usage of multiple LED strips
+```
+
+### 2.6. `memory`
 
 Simple component that periodically prints free memory of node.
 
