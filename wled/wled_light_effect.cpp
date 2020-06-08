@@ -1,7 +1,14 @@
 #include "wled_light_effect.h"
 #include "esphome/core/log.h"
 
+#ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
+#endif
+
+#ifdef ARDUINO_ARCH_ESP8266
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#endif
 
 namespace esphome {
 namespace wled {
