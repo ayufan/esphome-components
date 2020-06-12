@@ -3,11 +3,12 @@
 #include "esphome/core/log.h"
 
 #ifdef ARDUINO_ARCH_ESP32
-#include <AsyncUDP.h>
+#include <WiFi.h>
 #endif
 
 #ifdef ARDUINO_ARCH_ESP8266
-#include <ESPAsyncUDP.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 #endif
 
 namespace esphome {
@@ -17,42 +18,44 @@ static const char *TAG = "e131";
 static const int PORT = 5568;
 
 E131Component::E131Component() {
-#ifdef ARDUINO_ARCH_ESP32
-  lock_ = xSemaphoreCreateMutex();
-#endif
 }
 
 E131Component::~E131Component() {
-#ifdef ARDUINO_ARCH_ESP32
-  vSemaphoreDelete(lock_);
-#endif
-}
-
-void E131Component::setup() {
-  udp_.reset(new AsyncUDP());
-  udp_->onPacket([this](AsyncUDPPacket &packet) { this->packet_(packet); });
-
-  if (!udp_->listen(PORT)) {
-    ESP_LOGE(TAG, "Cannot bind E1.31 to %d.", PORT);
-    mark_failed();
+  if (udp_) {
+    udp_->stop();
   }
 }
 
+void E131Component::setup() {
+  udp_.reset(new WiFiUDP());
+
+  if (!udp_->begin(PORT)) {
+    ESP_LOGE(TAG, "Cannot bind E131 to %d.", PORT);
+    mark_failed();
+  }
+
+  join_igmp_groups_();
+}
+
 void E131Component::loop() {
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreTake(lock_, portMAX_DELAY);
-#endif
-  std::map<int, E131Packet> packets;
-  packets.swap(universe_packets_);
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreGive(lock_);
-#endif
+  std::vector<uint8_t> payload;
+  E131Packet packet;
+  int universe = 0;
 
-  for (auto packet : packets) {
-    auto handled = process_(packet.first, packet.second);
+  while (uint16_t packetSize = udp_->parsePacket()) {
+    payload.resize(packetSize);
 
-    if (!handled) {
-      ESP_LOGV(TAG, "Ignored packet for %d universe of size %d.", packet.first, packet.second.count);
+    if (!udp_->read(&payload[0], payload.size())) {
+      continue;
+    }
+
+    if (!packet_(payload, universe, packet)) {
+      ESP_LOGV(TAG, "Invalid packet recevied of size %d.", payload.size());
+      continue;
+    }
+
+    if (!process_(universe, packet)) {
+      ESP_LOGV(TAG, "Ignored packet for %d universe of size %d.", universe, packet.count);
     }
   }
 }

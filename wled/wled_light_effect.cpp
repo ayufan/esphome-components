@@ -59,7 +59,7 @@ void WLEDLightEffect::apply(light::AddressableLight &it, const light::ESPColor &
       ESP_LOGE(TAG, "Cannot bind WLEDLightEffect to %d.", port_);
     }
   }
-  
+
   while (uint16_t packetSize = udp_->parsePacket()) {
     std::vector<uint8_t> payload;
     payload.resize(packetSize);

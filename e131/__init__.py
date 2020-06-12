@@ -52,8 +52,4 @@ def e131_light_effect_to_code(config, effect_id):
     cg.add(effect.set_first_universe(config[CONF_UNIVERSE]))
     cg.add(effect.set_channels(CHANNELS[config[CONF_CHANNELS]]))
     cg.add(effect.set_e131(parent))
-
-    if CORE.is_esp8266:
-        # https://github.com/me-no-dev/ESPAsyncUDP/blob/master/library.json
-        cg.add_library('ESPAsyncUDP', '697c75a025')
     yield effect

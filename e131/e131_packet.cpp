@@ -1,14 +1,6 @@
 #include "e131.h"
 #include "esphome/core/log.h"
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <AsyncUDP.h>
-#endif
-
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESPAsyncUDP.h>
-#endif
-
 #include <lwip/ip_addr.h>
 #include <lwip/igmp.h>
 
@@ -54,52 +46,53 @@ union E131RawPacket {
     uint16_t first_address;
     uint16_t address_increment;
     uint16_t property_value_count;
-    uint8_t property_values[513];
+    uint8_t property_values[E131_MAX_PROPERTY_VALUES_COUNT];
   } __attribute__((packed));
 
   uint8_t raw[638];
 };
 
+// We need to have at least one `1` value
+const int E131_MIN_PACKET_SIZE = (int)&((E131RawPacket*)NULL)->property_values[1];
+
+bool E131Component::join_igmp_groups_() {
+  if (listen_method_ != E131_MULTICAST)
+    return false;
+  if (!udp_)
+    return false;
+
+  for (auto universe : universe_consumers_) {
+    if (!universe.second)
+      continue;
+
+    ip4_addr_t multicast_addr = {
+        static_cast<uint32_t>(IPAddress(239, 255, ((universe.first >> 8) & 0xff), ((universe.first >> 0) & 0xff)))};
+
+    auto err = igmp_joingroup(IP4_ADDR_ANY4, &multicast_addr);
+
+    if (err) {
+      ESP_LOGW(TAG, "IGMP join for %d universe of E1.31 failed. Multicast might not work.", universe.first);
+    }
+  }
+
+  return true;
+}
+
 void E131Component::join_(int universe) {
   // store only latest received packet for the given universe
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreTake(lock_, portMAX_DELAY);
-#endif
-
   auto consumers = ++universe_consumers_[universe];
-
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreGive(lock_);
-#endif
 
   if (consumers > 1) {
     return;  // we already joined before
   }
 
-  if (listen_method_ == E131_MULTICAST) {
-    ip4_addr_t multicast_addr = {
-        static_cast<uint32_t>(IPAddress(239, 255, ((universe >> 8) & 0xff), ((universe >> 0) & 0xff)))};
-
-    auto err = igmp_joingroup(IP4_ADDR_ANY4, &multicast_addr);
-
-    if (err) {
-      ESP_LOGW(TAG, "IGMP join for %d universe of E1.31 failed. Multicast might not work.", universe);
-    }
+  if (join_igmp_groups_()) {
+    ESP_LOGD(TAG, "Joined %d universe for E1.31.", universe);
   }
-
-  ESP_LOGD(TAG, "Joined %d universe for E1.31.", universe);
 }
 
 void E131Component::leave_(int universe) {
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreTake(lock_, portMAX_DELAY);
-#endif
-
   auto consumers = --universe_consumers_[universe];
-
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreGive(lock_);
-#endif
 
   if (consumers > 0) {
     return;  // we have other consumers of the given universe
@@ -115,36 +108,30 @@ void E131Component::leave_(int universe) {
   ESP_LOGD(TAG, "Left %d universe for E1.31.", universe);
 }
 
-void E131Component::packet_(AsyncUDPPacket &packet) {
-  auto sbuff = reinterpret_cast<E131RawPacket *>(packet.data());
+bool E131Component::packet_(const std::vector<uint8_t> &data, int &universe, E131Packet &packet) {
+  if (data.size() < E131_MIN_PACKET_SIZE)
+    return false;
+
+  auto sbuff = reinterpret_cast<const E131RawPacket *>(&data[0]);
+
   if (memcmp(sbuff->acn_id, ACN_ID, sizeof(sbuff->acn_id)) != 0)
-    return;
+    return false;
   if (htonl(sbuff->root_vector) != VECTOR_ROOT)
-    return;
+    return false;
   if (htonl(sbuff->frame_vector) != VECTOR_FRAME)
-    return;
+    return false;
   if (sbuff->dmp_vector != VECTOR_DMP)
-    return;
+    return false;
   if (sbuff->property_values[0] != 0)
-    return;
+    return false;
 
-  auto universe = htons(sbuff->universe);
+  universe = htons(sbuff->universe);
+  packet.count = htons(sbuff->property_value_count);
+  if (packet.count > E131_MAX_PROPERTY_VALUES_COUNT)
+    return false;
 
-  // store only latest received packet for the given universe
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreTake(lock_, portMAX_DELAY);
-#endif
-
-  if (universe_consumers_[universe] > 0) {
-    // store only latest received packet for the given universe
-    E131Packet &e131_packet = universe_packets_[universe];
-    e131_packet.count = sbuff->property_value_count;
-    memcpy(e131_packet.values, sbuff->property_values, sizeof(e131_packet.values));
-  }
-
-#ifdef ARDUINO_ARCH_ESP32
-  xSemaphoreGive(lock_);
-#endif
+  memcpy(packet.values, sbuff->property_values, packet.count);
+  return true;
 }
 
 }  // namespace e131
