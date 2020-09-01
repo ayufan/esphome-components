@@ -1,8 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.core import CORE
 from esphome.components.light.types import AddressableLightEffect
-from esphome.components.light.effects import register_effect, ADDRESSABLE_EFFECTS
+from esphome.components.light.effects import register_addressable_effect
 from esphome.const import CONF_ID, CONF_NAME, CONF_METHOD, CONF_CHANNELS
 
 e131_ns = cg.esphome_ns.namespace('e131')
@@ -33,11 +32,6 @@ def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     yield cg.register_component(var, config)
     cg.add(var.set_method(METHODS[config[CONF_METHOD]]))
-
-
-def register_addressable_effect(name, effect_type, default_name, schema, *extra_validators):
-    ADDRESSABLE_EFFECTS.append(name)
-    return register_effect(name, effect_type, default_name, schema, *extra_validators)
 
 
 @register_addressable_effect('e131', E131AddressableLightEffect, "E1.31", {

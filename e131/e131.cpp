@@ -17,8 +17,7 @@ namespace e131 {
 static const char *TAG = "e131";
 static const int PORT = 5568;
 
-E131Component::E131Component() {
-}
+E131Component::E131Component() {}
 
 E131Component::~E131Component() {
   if (udp_) {
@@ -42,15 +41,15 @@ void E131Component::loop() {
   E131Packet packet;
   int universe = 0;
 
-  while (uint16_t packetSize = udp_->parsePacket()) {
-    payload.resize(packetSize);
+  while (uint16_t packet_size = udp_->parsePacket()) {
+    payload.resize(packet_size);
 
     if (!udp_->read(&payload[0], payload.size())) {
       continue;
     }
 
     if (!packet_(payload, universe, packet)) {
-      ESP_LOGV(TAG, "Invalid packet recevied of size %d.", payload.size());
+      ESP_LOGV(TAG, "Invalid packet recevied of size %zu.", payload.size());
       continue;
     }
 

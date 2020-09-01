@@ -1,12 +1,9 @@
 #include "e131.h"
 #include "esphome/core/log.h"
+#include "esphome/core/util.h"
 
 #include <lwip/ip_addr.h>
 #include <lwip/igmp.h>
-
-#if LWIP_VERSION_MAJOR == 1
-typedef struct ip_addr ip4_addr_t;
-#endif
 
 namespace esphome {
 namespace e131 {
@@ -53,7 +50,8 @@ union E131RawPacket {
 };
 
 // We need to have at least one `1` value
-const int E131_MIN_PACKET_SIZE = (int)&((E131RawPacket*)NULL)->property_values[1];
+// Get the offset of `property_values[1]`
+const long E131_MIN_PACKET_SIZE = reinterpret_cast<long>(&((E131RawPacket *) nullptr)->property_values[1]);
 
 bool E131Component::join_igmp_groups_() {
   if (listen_method_ != E131_MULTICAST)

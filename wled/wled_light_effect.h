@@ -23,12 +23,12 @@ class WLEDLightEffect : public light::AddressableLightEffect {
 
  protected:
   void blank_all_leds_(light::AddressableLight &it);
-  bool parse_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
-  bool parse_notifier_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
-  bool parse_warls_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
-  bool parse_drgb_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
-  bool parse_drgbw_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
-  bool parse_dnrgb_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size);
+  bool parse_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
+  bool parse_notifier_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
+  bool parse_warls_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
+  bool parse_drgb_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
+  bool parse_drgbw_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
+  bool parse_dnrgb_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size);
 
  protected:
   uint16_t port_{0};

@@ -6,29 +6,37 @@ using namespace esphome;
 
 static const char *TAG = "inode_ble";
 
+static const esphome::esp32_ble_tracker::ESPBTUUID emeterDevice =
+  esphome::esp32_ble_tracker::ESPBTUUID::from_uint16(0x8290);
+
+static const esphome::esp32_ble_tracker::ESPBTUUID emeterDeviceLR =
+  esphome::esp32_ble_tracker::ESPBTUUID::from_uint16(0x82a0);
+
 bool iNodeMeterSensor::parse_device(
   const esphome::esp32_ble_tracker::ESPBTDevice &device)
 {
   if (device.address_uint64() != this->address_)
     return false;
 
-  auto data_size = device.get_manufacturer_data().size();
-  if (data_size < 3) {
-    return false;
+  bool parsed = false;
+
+  // iNode Manfacturer Data: UUID: 82:A0. Data: 07.00.2B.24.A0.00.E8.03.B0.00.00 (11)
+  for (auto service_data : device.get_manufacturer_datas()) {
+    ESP_LOGD(TAG, "iNode Manfacturer Data: UUID: %s. Data: %s",
+      service_data.uuid.to_string().c_str(), hexencode(service_data.data).c_str());
+
+    if (service_data.data.empty()) {
+      continue;
+    }
+
+    if (service_data.uuid == emeterDevice || service_data.uuid == emeterDeviceLR) {
+      if (parse_meter_device(device, &service_data.data[0], service_data.data.size())) {
+        parsed = true;
+      }
+    }
   }
 
-  auto data = (unsigned char*)device.get_manufacturer_data().c_str();
-  if (data[0] != 0x90 && data[0] != 0xa0) {
-    return false;
-  }
-
-  switch(data[1]) {
-    case 0x82:
-      return parse_meter_device(device, data + 2, data_size - 2);
-
-    default:
-      return false;
-  }
+  return parsed;
 }
 
 bool iNodeMeterSensor::parse_meter_device(

@@ -2,11 +2,6 @@
 
 #include "esphome/core/component.h"
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
-#endif
-
 #include <memory>
 #include <set>
 #include <map>

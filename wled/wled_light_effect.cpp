@@ -15,13 +15,7 @@ namespace wled {
 
 // Description of protocols:
 // https://github.com/Aircoookie/WLED/wiki/UDP-Realtime-Control
-enum Protocol {
-  WLED_Notifier = 0,
-  WARLS = 1,
-  DRGB = 2,
-  DRGBW = 3,
-  DNRGB = 4
-};
+enum Protocol { WLED_NOTIFIER = 0, WARLS = 1, DRGB = 2, DRGBW = 3, DNRGB = 4 };
 
 const int DEFAULT_BLANK_TIME = 1000;
 
@@ -45,7 +39,7 @@ void WLEDLightEffect::stop() {
 }
 
 void WLEDLightEffect::blank_all_leds_(light::AddressableLight &it) {
-  for (int led = it.size(); led-- > 0; ) {
+  for (int led = it.size(); led-- > 0;) {
     it[led].set(light::ESPColor::BLACK);
   }
 }
@@ -60,17 +54,16 @@ void WLEDLightEffect::apply(light::AddressableLight &it, const light::ESPColor &
     }
   }
 
-  while (uint16_t packetSize = udp_->parsePacket()) {
+  while (uint16_t packet_size = udp_->parsePacket()) {
     std::vector<uint8_t> payload;
-    payload.resize(packetSize);
+    payload.resize(packet_size);
 
     if (!udp_->read(&payload[0], payload.size())) {
       continue;
     }
 
     if (!this->parse_frame_(it, &payload[0], payload.size())) {
-      ESP_LOGD(TAG, "Frame: Invalid (size=%d, first=%c/%d).",
-        payload.size(), payload[0], payload[0]);
+      ESP_LOGD(TAG, "Frame: Invalid (size=%zu, first=%c/%d).", payload.size(), payload[0], payload[0]);
       continue;
     }
   }
@@ -81,7 +74,7 @@ void WLEDLightEffect::apply(light::AddressableLight &it, const light::ESPColor &
   }
 }
 
-bool WLEDLightEffect::parse_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // At minimum frame needs to have:
   // 1b - protocol
   // 1b - timeout
@@ -95,34 +88,34 @@ bool WLEDLightEffect::parse_frame_(light::AddressableLight &it, uint8_t *payload
   payload += 2;
   size -= 2;
 
-  switch(protocol) {
-  case WLED_Notifier:
-    if (!parse_notifier_frame_(it, payload, size))
-      return false;
-    break;
+  switch (protocol) {
+    case WLED_NOTIFIER:
+      if (!parse_notifier_frame_(it, payload, size))
+        return false;
+      break;
 
-  case WARLS:
-    if (!parse_warls_frame_(it, payload, size))
-      return false;
-    break;
+    case WARLS:
+      if (!parse_warls_frame_(it, payload, size))
+        return false;
+      break;
 
-  case DRGB:
-    if (!parse_drgb_frame_(it, payload, size))
-      return false;
-    break;
+    case DRGB:
+      if (!parse_drgb_frame_(it, payload, size))
+        return false;
+      break;
 
-  case DRGBW:
-    if (!parse_drgbw_frame_(it, payload, size))
-      return false;
-    break;
+    case DRGBW:
+      if (!parse_drgbw_frame_(it, payload, size))
+        return false;
+      break;
 
-  case DNRGB:
-    if (!parse_dnrgb_frame_(it, payload, size))
-      return false;
-    break;
+    case DNRGB:
+      if (!parse_dnrgb_frame_(it, payload, size))
+        return false;
+      break;
 
-  default:
-    return false;
+    default:
+      return false;
   }
 
   if (timeout == UINT8_MAX) {
@@ -136,16 +129,12 @@ bool WLEDLightEffect::parse_frame_(light::AddressableLight &it, uint8_t *payload
   return true;
 }
 
-bool WLEDLightEffect::parse_notifier_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_notifier_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // Packet needs to be empty
-  if (size != 0) {
-    return false;
-  }
-
-  return true;
+  return size == 0;
 }
 
-bool WLEDLightEffect::parse_warls_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_warls_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // packet: index, r, g, b
   if ((size % 4) != 0) {
     return false;
@@ -154,7 +143,7 @@ bool WLEDLightEffect::parse_warls_frame_(light::AddressableLight &it, uint8_t *p
   auto count = size / 4;
   auto max_leds = it.size();
 
-  for( ; count > 0; count--, payload += 4) {
+  for (; count > 0; count--, payload += 4) {
     uint8_t led = payload[0];
     uint8_t r = payload[1];
     uint8_t g = payload[2];
@@ -168,7 +157,7 @@ bool WLEDLightEffect::parse_warls_frame_(light::AddressableLight &it, uint8_t *p
   return true;
 }
 
-bool WLEDLightEffect::parse_drgb_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_drgb_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // packet: r, g, b
   if ((size % 3) != 0) {
     return false;
@@ -190,7 +179,7 @@ bool WLEDLightEffect::parse_drgb_frame_(light::AddressableLight &it, uint8_t *pa
   return true;
 }
 
-bool WLEDLightEffect::parse_drgbw_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_drgbw_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // packet: r, g, b, w
   if ((size % 4) != 0) {
     return false;
@@ -213,7 +202,7 @@ bool WLEDLightEffect::parse_drgbw_frame_(light::AddressableLight &it, uint8_t *p
   return true;
 }
 
-bool WLEDLightEffect::parse_dnrgb_frame_(light::AddressableLight &it, uint8_t *payload, uint16_t size) {
+bool WLEDLightEffect::parse_dnrgb_frame_(light::AddressableLight &it, const uint8_t *payload, uint16_t size) {
   // offset: high, low
   if (size < 2) {
     return false;
@@ -231,7 +220,7 @@ bool WLEDLightEffect::parse_dnrgb_frame_(light::AddressableLight &it, uint8_t *p
   auto count = size / 3;
   auto max_leds = it.size();
 
-  for( ; count > 0; count--, payload += 3, led++) {
+  for (; count > 0; count--, payload += 3, led++) {
     uint8_t r = payload[0];
     uint8_t g = payload[1];
     uint8_t b = payload[2];
