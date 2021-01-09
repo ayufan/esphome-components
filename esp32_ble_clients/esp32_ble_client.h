@@ -15,6 +15,8 @@ class ESP32BLELock;
 class ESP32BLEClient
 {
 public:
+  uint8_t *readresult_value;
+  uint16_t readresult_value_len;
   ESP32BLEClient(uint16_t app_id);
   ~ESP32BLEClient();
 
@@ -58,6 +60,10 @@ public:
     uint16_t handle,
     void *data, uint16_t data_length,
     bool response);
+
+  bool read(
+    uint16_t handle
+    );
 
   bool register_notify(
     uint16_t handle,
