@@ -1,25 +1,16 @@
 # ayufan's esphome custom components
 
-This repository contains a collection of my custom components.
+This repository contains a collection of my custom components
+for [ESPHome](https://esphome.io/).
 
-## 1. Installation
+## 1. Usage
 
-Clone this repository into `custom_components` in a folder
-where the `config.yaml` is stored.
+Use latest [ESPHome](https://esphome.io/) (at least v1.18.0)
+with external components and add this to your `.yaml` definition:
 
-```bash
-git clone https://github.com/ayufan/esphome-components.git custom_components
-```
-
-This is the directory structure expected:
-
-```bash
-$ ls -al
-total 64
-drwxr-xr-x 6 ayufan ayufan 4096 gru  3 22:56 .
-drwxr-xr-x 9 ayufan ayufan 4096 gru  3 13:19 ..
-drwxr-xr-x 7 ayufan ayufan 4096 gru  5 17:25 custom_components
--rw-r--r-- 1 ayufan ayufan 1509 gru  3 10:00 esp32-emeter.yaml
+```yaml
+external_components:
+  - source: github://ayufan/esphome-components
 ```
 
 ## 2. Components
@@ -131,93 +122,99 @@ switch:
       - component.update: office_eq3
 ```
 
-### 2.3. `e131`
+### 2.3. `tplink_plug`
 
-A component to support [E1.31](https://www.doityourselfchristmas.com/wiki/index.php?title=E1.31_(Streaming-ACN)_Protocol). This allows to control addressable LEDs over WiFi, by pushing data right into LEDs.
-
-The most popular application to push data would be: [JINX](http://www.live-leds.de/jinx-v1-3-with-resizable-mainwindow-real-dmx-and-sacne1-31/).
-
-```yaml
-e131_custom:
-  method: multicast # Register E1.31 to Multicast group
-  # method: unicast # Listen only on port
-
-light:
-  - platform: neopixelbus
-    pin: D4
-    method: ESP8266_UART1
-    num_leds: 189
-    name: LEDs
-    effects:
-      - e131:
-          universe: 1
-          channels: RGB
-          # channels: RGBW: to support additional W-channel
-```
-
-There are three modes of operation:
-
-- `MONO`: this supports 1 channel per LED (luminance), up-to 512 LEDs per universe
-- `RGB`: this supports 3 channels per LED (RGB), up-to 170 LEDs (3*170 = 510 bytes) per universe
-- `RGBW`: this supports 4 channels per LED (RGBW), up-to 128 LEDs (4*128 = 512 bytes) per universe
-
-If there's more LEDs than allowed per-universe, additional universe will be used.
-In the above example of 189 LEDs, first 170 LEDs will be assigned to 1 universe,
-the rest of 19 LEDs will be automatically assigned to 2 universe.
-
-It is possible to enable multiple light platforms to listen to the same universe concurrently,
-allowing to replicate the behaviour on multiple strips.
-
-Sometimes it might be advised to improved of connection. By default `multicast` is used,
-but in some circumstances it might be advised to connect directly via IP to the esp-node.
-
-### 2.4. `adalight`
-
-A component to support [Adalight](https://learn.adafruit.com/adalight-diy-ambient-tv-lighting). This allows to control addressable LEDs over UART, by pushing data right into LEDs.
-
-The most useful to use [Prismatik](https://github.com/psieg/Lightpack) to create an immersive effect on PC.
+This plugin allows to emulate TPLink HS100/HS110 type of plug
+using LAN protocol with ESPHome. Especially useful where you
+want to use existing software that supports these type of plugs,
+but not others.
 
 ```yaml
-adalight:
+tplink_plug:
+  plugs:
+    voltage: my_voltage
+    current: my_current
+    total: my_total
+    state: relay
 
-uart:
-  - id: adalight_uart
-    tx_pin: TX
-    rx_pin: RX
-    baud_rate: 115200
+# Example config for Gosund SP111
 
-light:
-  - platform: neopixelbus
-    pin: D4
-    method: ESP8266_UART1
-    num_leds: 189
-    name: LEDs
-    effects:
-      - adalight:
-          uart_id: adalight_uart
+sensor:
+  - id: my_daily_total
+    platform: total_daily_energy
+    name: "MK3S+ Daily Energy"
+    power_id: my_power
+
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: true
+    cf_pin: GPIO05
+    cf1_pin: GPIO04
+    current:
+      id: my_current
+      name: "MK3S+ Current"
+      expire_after: 1min
+    voltage:
+      id: my_voltage
+      name: "MK3S+ Voltage"
+      expire_after: 1min
+    power:
+      id: my_power
+      name: "MK3S+ Power"
+      expire_after: 1min
+      filters:
+        - multiply: 0.5
+    energy:
+      id: my_total
+      name: "MK3S+ Energy"
+      expire_after: 1min
+      filters:
+        - multiply: 0.5
+    change_mode_every: 3
+    update_interval: 15s
+    voltage_divider: 748
+    current_resistor: 0.0012
+
+    # {"PowerSetCal":10085}
+    # {"VoltageSetCal":1581}
+    # {"CurrentSetCal":3555}
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "MK3S+ Button"
+    on_press:
+      - switch.toggle: relay
+
+switch:
+  - platform: gpio
+    id: relay
+    name: "MK3S+ Switch"
+    pin: GPIO15
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: mdi:power-socket-eu
+    on_turn_on:
+      - output.turn_on: led
+    on_turn_off:
+      - output.turn_off: led
+
+status_led:
+  pin:
+    number: GPIO00
+    inverted: true
+
+output:
+  - platform: gpio
+    pin: GPIO02
+    inverted: true
+    id: led
 ```
 
-### 2.5. `WLED`
-
-A component to support [WLED](https://github.com/Aircoookie/WLED/wiki/UDP-Realtime-Control). This allows to control addressable LEDs over WiFi/UDP, by pushing data right into LEDs.
-
-The most useful to use [Prismatik](https://github.com/psieg/Lightpack) to create an immersive effect on PC.
-
-```yaml
-wled:
-
-light:
-  - platform: neopixelbus
-    pin: D4
-    method: ESP8266_UART1
-    num_leds: 189
-    name: LEDs
-    effects:
-      - wled:
-          # port: 21324 # optional port to allow usage of multiple LED strips
-```
-
-### 2.6. `memory`
+### 2.4. `memory`
 
 Simple component that periodically prints free memory of node.
 
@@ -227,4 +224,4 @@ memory:
 
 ## 3. Author & License
 
-Kamil Trzciński, MIT, 2019
+Kamil Trzciński, MIT, 2019-2021
