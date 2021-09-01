@@ -222,6 +222,35 @@ Simple component that periodically prints free memory of node.
 memory:
 ```
 
+### 2.5. `esp32_camera_web_server`
+
+Simple component to expose `esp32_camera` via HTTP snapshot and stream interface:
+
+- http://esphome:8080/
+- http://esphome:8081/
+
+```yaml
+esp32_camera_web_server:
+  stream_port: 8080 # 0 to disable
+  snapshot_port: 8081 # 0 to disable
+
+esp32_camera:
+  name: My Camera
+  external_clock:
+    pin: GPIO0
+    frequency: 20MHz
+  i2c_pins:
+    sda: GPIO26
+    scl: GPIO27
+  data_pins: [GPIO5, GPIO18, GPIO19, GPIO21, GPIO36, GPIO39, GPIO34, GPIO35]
+  vsync_pin: GPIO25
+  href_pin: GPIO23
+  pixel_clock_pin: GPIO22
+  power_down_pin: GPIO32
+  resolution: 1600x1200
+  jpeg_quality: 12
+```
+
 ## 3. Author & License
 
 Kamil Trzciński, MIT, 2019-2021
