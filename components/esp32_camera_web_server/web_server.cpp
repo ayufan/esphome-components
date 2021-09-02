@@ -15,7 +15,7 @@
 namespace esphome {
 namespace esp32_camera_web_server {
 
-static const int IMAGE_REQUEST_TIMEOUT = 500;
+static const int IMAGE_REQUEST_TIMEOUT = 2000;
 static const char *TAG = "esp32_camera_web_server2";
 
 // esp32_camera::global_esp32_camera
@@ -54,6 +54,9 @@ void WebServer::setup() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = this->stream_port_;
     config.ctrl_port = this->stream_port_;
+    config.max_open_sockets = 1;
+    config.backlog_conn = 1;
+
     if (httpd_start(&this->stream_httpd_, &config) == ESP_OK) {
       httpd_uri_t uri = {
         .uri       = "/",
@@ -71,6 +74,9 @@ void WebServer::setup() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = this->snapshot_port_;
     config.ctrl_port = this->snapshot_port_;
+    config.max_open_sockets = 1;
+    config.backlog_conn = 4;
+
     if (httpd_start(&this->snapshot_httpd_, &config) == ESP_OK) {
       httpd_uri_t uri = {
         .uri       = "/",
