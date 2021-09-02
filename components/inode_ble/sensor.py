@@ -24,7 +24,7 @@ CONF_TOTAL_DM3 = 'total_dm3'
 CONF_BATTERY_LEVEL = 'battery_level'
 CONF_LIGHT_LEVEL = 'light_level'
 
-UNIT_KWH = 'kW/h'
+UNIT_KWH = 'kWh'
 
 UNIT_DM3 = 'dm3'
 
