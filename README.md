@@ -231,8 +231,12 @@ Simple component to expose `esp32_camera` via HTTP snapshot and stream interface
 
 ```yaml
 esp32_camera_web_server:
-  stream_port: 8080 # 0 to disable
-  snapshot_port: 8081 # 0 to disable
+  # define only what is needed
+  # only a single stream is supported at a given time
+  - port: 8080
+    mode: stream
+  - port: 8081
+    mode: snapshot
 
 esp32_camera:
   name: My Camera

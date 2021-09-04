@@ -1,30 +1,36 @@
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.const import (CONF_ID, ESP_PLATFORM_ESP32)
+from esphome.const import (CONF_ID, ESP_PLATFORM_ESP32, CONF_PORT, CONF_MODE)
 from esphome.core import coroutine_with_priority
 
-AUTO_LOAD = ['esp32_camera']
+DEPENDENCIES = ['esp32_camera']
 
 ESP_PLATFORMS = [ESP_PLATFORM_ESP32]
 
-CONF_STREAM_PORT = 'stream_port'
-CONF_SNAPSHOT_CPORT = 'snapshot_port'
-
 esp32_camera_web_server_ns = cg.esphome_ns.namespace('esp32_camera_web_server')
 WebServer = esp32_camera_web_server_ns.class_('WebServer', cg.Component)
+Mode = esp32_camera_web_server_ns.enum("Mode")
 
-CONFIG_SCHEMA = cv.Schema({
+MODES = {
+    "stream": Mode.Stream,
+    "snapshot": Mode.Snapshot,
+}
+
+WEB_SERVER_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(WebServer),
-    cv.Optional(CONF_STREAM_PORT, default=8080): cv.port,
-    cv.Optional(CONF_SNAPSHOT_CPORT, default=8081): cv.port
+    cv.Required(CONF_PORT): cv.port,
+    cv.Required(CONF_MODE): cv.enum(MODES)
 }).extend(cv.COMPONENT_SCHEMA)
+
+CONFIG_SCHEMA = cv.ensure_list(WEB_SERVER_SCHEMA)
 
 
 @coroutine_with_priority(40.0)
 def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    cg.add(var.set_stream_port(config[CONF_STREAM_PORT]))
-    cg.add(var.set_snapshot_port(config[CONF_SNAPSHOT_CPORT]))
-    yield cg.register_component(var, config)
+    for i, conf in enumerate(config):
+        server = cg.new_Pvariable(conf[CONF_ID])
+        cg.add(server.set_port(conf[CONF_PORT]))
+        cg.add(server.set_mode(conf[CONF_MODE]))
+        yield cg.register_component(server, conf)
 
 
