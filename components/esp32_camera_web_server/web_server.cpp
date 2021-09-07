@@ -22,15 +22,13 @@ static const char *TAG = "esp32_camera_web_server";
 #define CONTENT_TYPE "image/jpeg"
 #define CONTENT_LENGTH "Content-Length"
 
-static const char* STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
-static const char* STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
-static const char* STREAM_PART = "Content-Type: " CONTENT_TYPE "\r\n" CONTENT_LENGTH ": %u\r\n\r\n";
+static const char *STREAM_HEADER = "HTTP/1.1 200\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: multipart/x-mixed-replace;boundary=" PART_BOUNDARY "\r\n";
+static const char *STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
+static const char *STREAM_PART = "Content-Type: " CONTENT_TYPE "\r\n" CONTENT_LENGTH ": %u\r\n\r\n";
 
-WebServer::WebServer() {
-}
+WebServer::WebServer() {}
 
-WebServer::~WebServer() {
-}
+WebServer::~WebServer() {}
 
 void WebServer::setup() {
   this->semaphore_ = xSemaphoreCreateBinary();
@@ -46,12 +44,10 @@ void WebServer::setup() {
     return;
   }
 
-  httpd_uri_t uri = {
-    .uri       = "/",
-    .method    = HTTP_GET,
-    .handler   = [](struct httpd_req *req) { return ((WebServer*)req->user_ctx)->handler_(req); },
-    .user_ctx  = this
-  };
+  httpd_uri_t uri = {.uri = "/",
+                     .method = HTTP_GET,
+                     .handler = [](struct httpd_req *req) { return ((WebServer *) req->user_ctx)->handler_(req); },
+                     .user_ctx = this};
 
   httpd_register_uri_handler(this->httpd_, &uri);
 
@@ -75,11 +71,15 @@ void WebServer::on_shutdown() {
 }
 
 void WebServer::dump_config() {
+  ESP_LOGCONFIG(TAG, "ESP32 Camera Web Server:");
+  ESP_LOGCONFIG(TAG, "  Port: %d", this->port_);
+  if (this->mode_ == Stream)
+    ESP_LOGCONFIG(TAG, "  Mode: stream");
+  else
+    ESP_LOGCONFIG(TAG, "  Mode: snapshot");
 }
 
-float WebServer::get_setup_priority() const {
-  return setup_priority::LATE;
-}
+float WebServer::get_setup_priority() const { return setup_priority::LATE; }
 
 void WebServer::loop() {
   if (!this->running_) {
@@ -107,13 +107,13 @@ esp_err_t WebServer::handler_(struct httpd_req *req) {
   this->running_ = true;
 
   switch (this->mode_) {
-  case Stream:
-    res = this->streaming_handler_(req);
-    break;
+    case Stream:
+      res = this->streaming_handler_(req);
+      break;
 
-  case Snapshot:
-    res = this->snapshot_handler_(req);
-    break;
+    case Snapshot:
+      res = this->snapshot_handler_(req);
+      break;
   }
 
   this->running_ = false;
@@ -121,17 +121,32 @@ esp_err_t WebServer::handler_(struct httpd_req *req) {
   return res;
 }
 
+static esp_err_t httpd_send_all(httpd_req_t *r, const char *buf, size_t buf_len) {
+  int ret;
+
+  while (buf_len > 0) {
+    ret = httpd_send(r, buf, buf_len);
+    if (ret < 0) {
+        return ESP_FAIL;
+    }
+    buf     += ret;
+    buf_len -= ret;
+  }
+  return ESP_OK;
+}
+
 esp_err_t WebServer::streaming_handler_(struct httpd_req *req) {
   esp_err_t res = ESP_OK;
   char part_buf[64];
 
-  res = httpd_resp_set_type(req, STREAM_CONTENT_TYPE);
-  if(res != ESP_OK){
-    ESP_LOGW(TAG, "STREAM: failed to set HTTP response type");
+  // This manually constructs HTTP response to avoid chunked encoding
+  // which is not supported by some clients
+
+  res = httpd_send_all(req, STREAM_HEADER, strlen(STREAM_HEADER));
+  if (res != ESP_OK) {
+    ESP_LOGW(TAG, "STREAM: failed to set HTTP header");
     return res;
   }
-
-  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
   uint32_t last_frame = millis();
   uint32_t frames = 0;
@@ -148,28 +163,23 @@ esp_err_t WebServer::streaming_handler_(struct httpd_req *req) {
       res = ESP_FAIL;
     }
     if (res == ESP_OK) {
-        res = httpd_resp_send_chunk(req, STREAM_BOUNDARY, strlen(STREAM_BOUNDARY));
+      res = httpd_send_all(req, STREAM_BOUNDARY, strlen(STREAM_BOUNDARY));
     }
     if (res == ESP_OK) {
-        size_t hlen = snprintf(part_buf, 64, STREAM_PART, image->get_data_length());
-        res = httpd_resp_send_chunk(req, part_buf, hlen);
+      size_t hlen = snprintf(part_buf, 64, STREAM_PART, image->get_data_length());
+      res = httpd_send_all(req, part_buf, hlen);
     }
     if (res == ESP_OK) {
-        res = httpd_resp_send_chunk(req, (const char *)image->get_data_buffer(), image->get_data_length());
+      res = httpd_send_all(req, (const char *) image->get_data_buffer(), image->get_data_length());
     }
     if (res == ESP_OK) {
       frames++;
       int64_t frame_time = millis() - last_frame;
       last_frame = millis();
 
-      ESP_LOGD(TAG, "MJPG: %uB %ums (%.1ffps)",
-          (uint32_t)image->get_data_length(),
-          (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time);
+      ESP_LOGD(TAG, "MJPG: %uB %ums (%.1ffps)", (uint32_t) image->get_data_length(), (uint32_t) frame_time,
+               1000.0 / (uint32_t) frame_time);
     }
-  }
-
-  if (!frames) {
-    res = httpd_resp_send_500(req);
   }
 
   ESP_LOGI(TAG, "STREAM: closed. Frames: %u", frames);
@@ -203,7 +213,7 @@ esp_err_t WebServer::snapshot_handler_(struct httpd_req *req) {
     res = httpd_resp_set_hdr(req, CONTENT_LENGTH, esphome::to_string(image->get_data_length()).c_str());
   }
   if (res == ESP_OK) {
-    res = httpd_resp_send(req, (const char *)image->get_data_buffer(), image->get_data_length());
+    res = httpd_resp_send(req, (const char *) image->get_data_buffer(), image->get_data_length());
   }
   return res;
 }

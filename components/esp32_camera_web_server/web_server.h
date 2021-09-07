@@ -12,10 +12,7 @@ struct httpd_req;
 namespace esphome {
 namespace esp32_camera_web_server {
 
-enum Mode {
-  Stream,
-  Snapshot
-};
+enum Mode { Stream, Snapshot };
 
 class WebServer : public Component {
  public:
@@ -48,4 +45,4 @@ class WebServer : public Component {
 }  // namespace esp32_camera_web_server
 }  // namespace esphome
 
-#endif // ARDUINO_ARCH_ESP32
+#endif  // ARDUINO_ARCH_ESP32
