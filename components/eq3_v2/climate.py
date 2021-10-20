@@ -3,12 +3,11 @@ import esphome.config_validation as cv
 from esphome.components import climate, sensor, time
 from esphome.components.remote_base import CONF_TRANSMITTER_ID
 from esphome.const import CONF_ID, CONF_TIME_ID, CONF_MAC_ADDRESS, \
-    ESP_PLATFORM_ESP32, \
     UNIT_PERCENT, ICON_PERCENT
 
 ESP_PLATFORMS = [ESP_PLATFORM_ESP32]
 CONFLICTS_WITH = ['eq3_v1', 'esp32_ble_tracker']
-DEPENDENCIES = ['time']
+DEPENDENCIES = ['esp32', 'time']
 AUTO_LOAD = ['sensor', 'esp32_ble_clients']
 
 CONF_VALVE = 'valve'

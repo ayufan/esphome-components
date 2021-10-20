@@ -1,12 +1,10 @@
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.const import CONF_ID, ESP_PLATFORM_ESP32, CONF_PORT, CONF_MODE
+from esphome.const import CONF_ID, CONF_PORT, CONF_MODE
 from esphome.core import coroutine_with_priority
 
 DEPENDENCIES = ["esp32_camera"]
 CODEOWNERS = ["@ayufan"]
-
-ESP_PLATFORMS = [ESP_PLATFORM_ESP32]
 
 esp32_camera_web_server_ns = cg.esphome_ns.namespace("esp32_camera_web_server")
 WebServer = esp32_camera_web_server_ns.class_("WebServer", cg.Component)

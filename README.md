@@ -23,10 +23,6 @@ A component to support [iNode.pl](https://inode.pl/) devices
 #### 2.1.1. Example
 
 ```yaml
-wifi:
-  ...
-  power_save_mode: none
-
 # the BT window is configured to be a small portion
 # of interval to have a lot of time to handle WiFi
 esp32_ble_tracker:
@@ -90,10 +86,6 @@ and results in disconnect.
 #### 2.2.2. Example
 
 ```yaml
-wifi:
-  ...
-  power_save_mode: none
-
 # time is required by `eq3_v2` to send
 # an accurate time spec when requesting
 # current state
@@ -184,7 +176,7 @@ binary_sensor:
   - platform: gpio
     pin:
       number: GPIO13
-      mode: INPUT_PULLUP
+      mode: INPUT
       inverted: true
     name: "MK3S+ Button"
     on_press:

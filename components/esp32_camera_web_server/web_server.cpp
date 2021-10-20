@@ -1,4 +1,4 @@
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
 
 #include "web_server.h"
 #include "esphome/core/log.h"
