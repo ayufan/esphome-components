@@ -116,7 +116,7 @@ void StreamServerComponent::read() {
     while ((len = this->stream_->available()) > 0) {
         this->send_buf_.resize(std::min(len, SEND_BUF_SIZE));
 
-        if (!this->stream_->read_array(this->send_buf_.data(), this->send_buf_.size()) {
+        if (!this->stream_->read_array(this->send_buf_.data(), this->send_buf_.size())) {
             break;
         }
 
