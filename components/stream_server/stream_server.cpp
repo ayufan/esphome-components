@@ -114,9 +114,12 @@ void StreamServerComponent::read() {
 
     int len;
     while ((len = this->stream_->available()) > 0) {
-        this->send_buf_.resize(SEND_BUF_SIZE);
-        size_t read = this->stream_->read_array(this->send_buf_.data(), std::min(len, SEND_BUF_SIZE));
-        this->send_buf_.resize(read);
+        this->send_buf_.resize(std::min(len, SEND_BUF_SIZE));
+
+        if (!this->stream_->read_array(this->send_buf_.data(), this->send_buf_.size()) {
+            break;
+        }
+
         this->send_client_ = 0;
 
         if (!this->flush()) {
