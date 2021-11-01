@@ -25,6 +25,7 @@ DEPENDENCIES = ["uart"]
 MULTI_CONF = True
 
 CONF_MAX_CLIENTS = "max_clients"
+CONF_HELLO_MESSAGE = "hello_message"
 
 StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
 
@@ -34,6 +35,7 @@ CONFIG_SCHEMA = (
 			cv.GenerateID(): cv.declare_id(StreamServerComponent),
 			cv.Optional(CONF_PORT): cv.port,
 			cv.Optional(CONF_MAX_CLIENTS): cv.int_range(min=-4, max=4),
+			cv.Optional(CONF_HELLO_MESSAGE): cv.string
 		}
 	)
 		.extend(cv.COMPONENT_SCHEMA)
@@ -46,6 +48,8 @@ def to_code(config):
 		cg.add(var.set_port(config[CONF_PORT]))
 	if CONF_MAX_CLIENTS in config:
 		cg.add(var.set_max_clients(config[CONF_MAX_CLIENTS]))
+	if CONF_HELLO_MESSAGE in config:
+		cg.add(var.set_hello_message(config[CONF_HELLO_MESSAGE]))
 
 	yield cg.register_component(var, config)
 	yield uart.register_uart_device(var, config)

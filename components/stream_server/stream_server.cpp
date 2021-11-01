@@ -40,6 +40,11 @@ void StreamServerComponent::setup() {
         tcpClient->setNoDelay(true);
         this->clients_.push_back(std::unique_ptr<Client>(new Client(tcpClient, this->recv_buf_)));
         this->discard_clients();
+
+        // Send hello message
+        if (this->clients_.back()->tcp_client == tcpClient) {
+            tcpClient->write(this->hello_message_.data(), this->hello_message_.size());
+        }
     }, this);
 }
 

@@ -47,6 +47,8 @@ public:
 
     void set_max_clients(int max_clients) { this->max_clients_ = max_clients; }
 
+    void set_hello_message(const char *hello_message) { this->hello_message_ = hello_message; }
+
 protected:
     void discard_clients();
     void cleanup();
@@ -65,6 +67,7 @@ protected:
 
     esphome::uart::UARTComponent *stream_{nullptr};
     AsyncServer server_{0};
+    std::string hello_message_{};
     uint16_t port_{6638};
     int max_clients_{-1};
     std::vector<uint8_t> send_buf_{};
