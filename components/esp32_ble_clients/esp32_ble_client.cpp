@@ -1,5 +1,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/util.h"
 
 #include "esp32_ble.h"
 #include "esp32_ble_log.h"
@@ -50,6 +51,10 @@ ESP32BLEClient::ESP32BLEClient(uint16_t app_id)
     notification.notification = result.param.notify.is_notify;
     notifications.push_back(notification);
   };
+
+  event_handlers[ESP_GATTC_CONNECT_EVT] = [this](const EventResult &result) {
+    // Do nothing, do not set-up encryption
+  };
 }
 
 ESP32BLEClient::~ESP32BLEClient()
@@ -82,7 +87,7 @@ esp_err_t ESP32BLEClient::log(const char *reason, esp_err_t code)
   } else {
     BLE_LOGI(TAG, "SUCCESS[%10llx]: %s\n", address64, reason);
   }
-  BLE_LOGD(TAG, "FREE_HEAP: %d\n", ESP.getFreeHeap());
+  BLE_LOGD(TAG, "FREE_HEAP: %d\n", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 
   return code;
 }
