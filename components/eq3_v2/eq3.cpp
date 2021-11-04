@@ -143,6 +143,23 @@ void EQ3Climate::control_retry(ClimateCall call, int tries) {
       }
     }
 
+    if (call.get_preset().has_value()) {
+      switch (*call.get_mode()) {
+      default:
+      case CLIMATE_PRESET_COMFORT:
+        calls += set_temperature_type(0);
+        break;
+      
+      case CLIMATE_PRESET_ECO:
+        calls += set_temperature_type(1);
+        break;
+      
+      case CLIMATE_PRESET_BOOST:
+        calls += set_boost_mode(1);
+        break;
+      }
+    }
+
     if (!calls) {
       calls += query_state();
     }
@@ -204,15 +221,20 @@ void EQ3Climate::parse_state(const std::string &data) {
   if (state->mode.boost_mode) {
     target_temperature = EQ3BT_ON_TEMP;
     mode = CLIMATE_MODE_HEAT;
+    preset = CLIMATE_PRESET_BOOST;
   } else if (target_temperature == EQ3BT_OFF_TEMP) {
     mode = CLIMATE_MODE_OFF;
+    preset = CLIMATE_PRESET_NONE;
   } else if (state->mode.manual_mode) {
     mode = CLIMATE_MODE_HEAT;
+    preset = CLIMATE_PRESET_NONE;
+  } else if (state->mode.away_mode) {
+    mode = CLIMATE_MODE_OFF;
+    preset = CLIMATE_PRESET_AWAY;
   } else {
     mode = CLIMATE_MODE_AUTO;
+    preset = CLIMATE_PRESET_HOME;
   }
-
-  away = state->mode.away_mode;
 
   if (valve) {
     valve->publish_state(state->valve);
@@ -272,12 +294,19 @@ void EQ3Climate::parse_id(const std::string &data) {
 
 ClimateTraits EQ3Climate::traits() {
   auto traits = ClimateTraits();
-  traits.set_supports_auto_mode(true);
   if (this->temperature_sensor) {
     traits.set_supports_current_temperature(true);
   }
-  traits.set_supports_heat_mode(true);
-  traits.set_supports_away(false); // currently not working
+  traits.set_supported_modes({
+    CLIMATE_MODE_AUTO,
+    CLIMATE_MODE_HEAT
+  });
+  traits.set_supported_presets({
+    CLIMATE_PRESET_HOME,
+    CLIMATE_PRESET_BOOST,
+    CLIMATE_PRESET_COMFORT,
+    CLIMATE_PRESET_ECO
+  });
   traits.set_visual_min_temperature(EQ3BT_MIN_TEMP);
   traits.set_visual_max_temperature(EQ3BT_MAX_TEMP);
   traits.set_visual_temperature_step(0.5);
