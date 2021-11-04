@@ -10,6 +10,7 @@
 #include <esp_gap_ble_api.h>
 #include <esp_bt_defs.h>
 #include <esp_coexist.h>
+#include <esp32-hal-bt.h>
 
 static const char *TAG = "esp32_ble";
 static const int MAX_CLIENTS = 1;

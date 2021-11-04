@@ -1,9 +1,12 @@
 #include "esphome/core/helpers.h"
+#include "esphome/core/hal.h"
 
 #include "esp32_ble.h"
 #include "esp32_ble_log.h"
 #include "esp32_ble_lock.h"
 #include "esp32_ble_client.h"
+
+#include <string.h>
 
 static const char *TAG = "esp32_ble_client";
 

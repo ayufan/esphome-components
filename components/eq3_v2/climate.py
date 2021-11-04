@@ -5,7 +5,7 @@ from esphome.components.remote_base import CONF_TRANSMITTER_ID
 from esphome.const import CONF_ID, CONF_TIME_ID, CONF_MAC_ADDRESS, \
     UNIT_PERCENT, ICON_PERCENT
 
-ESP_PLATFORMS = [ESP_PLATFORM_ESP32]
+DEPENDENCIES = ['esp32']
 CONFLICTS_WITH = ['eq3_v1', 'esp32_ble_tracker']
 DEPENDENCIES = ['esp32', 'time']
 AUTO_LOAD = ['sensor', 'esp32_ble_clients']
