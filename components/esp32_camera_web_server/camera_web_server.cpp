@@ -1,5 +1,6 @@
 #ifdef USE_ESP32
 
+#include "esphome.h"
 #include "camera_web_server.h"
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
