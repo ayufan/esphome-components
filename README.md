@@ -214,7 +214,9 @@ Simple component that periodically prints free memory of node.
 memory:
 ```
 
-### 2.5. `esp32_camera_web_server`
+### 2.5. `esp32_camera_web_server` (upstreamed)
+
+_This component was removed as it is part of upstream esphome starting with version 2021.11: https://esphome.io/components/esp32_camera_web_server.html_
 
 Simple component to expose `esp32_camera` via HTTP snapshot and stream interface:
 
