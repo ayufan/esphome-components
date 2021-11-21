@@ -144,7 +144,7 @@ void EQ3Climate::control_retry(ClimateCall call, int tries) {
     }
 
     if (call.get_preset().has_value()) {
-      switch (*call.get_mode()) {
+      switch (*call.get_preset()) {
       default:
       case CLIMATE_PRESET_COMFORT:
         calls += set_temperature_type(0);
