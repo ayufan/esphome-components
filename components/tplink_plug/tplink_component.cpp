@@ -168,7 +168,6 @@ void TplinkComponent::process_(Stream *response, std::string &s) {
   bool requested_state = false;
   bool get_sysinfo = false;
 
-  this->response_ = response;
   this->decrypt_(s);
 
   ESP_LOGV(TAG, "Received raw: %s", hexencode((const uint8_t*)s.c_str(), s.size()).c_str());
@@ -190,21 +189,19 @@ void TplinkComponent::process_(Stream *response, std::string &s) {
   });
   
   if (get_realtime) {
-    this->process_get_realtime_();
+    this->process_get_realtime_(response);
   } else if (get_sysinfo) {
-    this->process_get_sysinfo_();
+    this->process_get_sysinfo_(response);
   } else if (set_relay_state) {
-    this->process_set_relay_state_(requested_state);
+    this->process_set_relay_state_(response, requested_state);
   } else if (set_led_state) {
-    this->process_set_led_state_(requested_state);
+    this->process_set_led_state_(response, requested_state);
   } else {
     ESP_LOGV(TAG, "Packet not understood.");
   }
-
-  this->response_ = nullptr;
 }
 
-void TplinkComponent::process_set_relay_state_(bool requested_state) {
+void TplinkComponent::process_set_relay_state_(Stream *response, bool requested_state) {
   for (auto &plug : this->plugs_) {
     if (requested_state) {
       plug.state_switch->turn_on();
@@ -212,7 +209,7 @@ void TplinkComponent::process_set_relay_state_(bool requested_state) {
       plug.state_switch->turn_off();
     }
 
-    this->send_json_([](JsonObject &root) {
+    this->send_json_(response, [](JsonObject &root) {
       auto &emeter = root.createNestedObject("system");
       auto &relay_state = emeter.createNestedObject("set_relay_state");
 
@@ -221,11 +218,11 @@ void TplinkComponent::process_set_relay_state_(bool requested_state) {
   }
 }
 
-void TplinkComponent::process_set_led_state_(bool requested_state) {
+void TplinkComponent::process_set_led_state_(Stream *response, bool requested_state) {
 }
 
-void TplinkComponent::process_get_sysinfo_() {
-  this->send_json_([this](JsonObject &root) {
+void TplinkComponent::process_get_sysinfo_(Stream *response) {
+  this->send_json_(response, [this](JsonObject &root) {
     auto &system = root.createNestedObject("system");
     auto &sysinfo = system.createNestedObject("get_sysinfo");
     sysinfo["err_code"] = 0;
@@ -270,9 +267,9 @@ void TplinkComponent::process_get_sysinfo_() {
   });
 }
 
-void TplinkComponent::process_get_realtime_() {
+void TplinkComponent::process_get_realtime_(Stream *response) {
   for (auto &plug : this->plugs_) {
-    this->send_json_([&plug](JsonObject &root) {
+    this->send_json_(response, [&plug](JsonObject &root) {
       auto &emeter = root.createNestedObject("emeter");
       auto &realtime = emeter.createNestedObject("get_realtime");
 
@@ -303,7 +300,7 @@ void TplinkComponent::process_get_realtime_() {
   }
 }
 
-bool TplinkComponent::send_json_(const esphome::json::json_build_t &fn) {
+bool TplinkComponent::send_json_(Stream *response, const esphome::json::json_build_t &fn) {
   std::string output = esphome::json::build_json(fn);
 
   if (output.empty()) {
@@ -314,12 +311,12 @@ bool TplinkComponent::send_json_(const esphome::json::json_build_t &fn) {
 
   this->encrypt_(output);
 
-  if (this->response_ == this->udp_.get()) { // udp
-    return this->udp_->write((const uint8_t*)output.c_str(), output.size());
-  } else if (this->response_) { // tcp
+  if (response == this->udp_.get()) { // udp
+    return response->write((const uint8_t*)output.c_str(), output.size());
+  } else if (response) { // tcp
     unsigned int size = ntohl(output.size());
-    this->response_->write((const char*)&size, sizeof(size));
-    return this->response_->write(output.c_str(), output.size());
+    response->write((const char*)&size, sizeof(size));
+    return response->write(output.c_str(), output.size());
   } else {
     return false;
   }

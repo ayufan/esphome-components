@@ -50,11 +50,11 @@ class TplinkComponent : public esphome::Component {
   void loop_tcp_accept_();
   bool recv_tcp_(Client &client);
   void process_(Stream *response, std::string &s);
-  void process_get_realtime_();
-  void process_get_sysinfo_();
-  void process_set_relay_state_(bool requested_state);
-  void process_set_led_state_(bool requested_state);
-  bool send_json_(const esphome::json::json_build_t &fn);
+  void process_get_realtime_(Stream *response);
+  void process_get_sysinfo_(Stream *response);
+  void process_set_relay_state_(Stream *response, bool requested_state);
+  void process_set_led_state_(Stream *response, bool requested_state);
+  bool send_json_(Stream *response, const esphome::json::json_build_t &fn);
   void decrypt_(std::string &s);
   void encrypt_(std::string &s);
 
@@ -64,8 +64,6 @@ class TplinkComponent : public esphome::Component {
   std::unique_ptr<UDP> udp_;
   std::unique_ptr<WiFiServer> tcp_;
   std::vector<Client*> clients_;
-
-  Stream *response_{nullptr};
 };
 
 }  // namespace e131
