@@ -104,16 +104,31 @@ void TplinkComponent::loop_udp_() {
 
   while (uint16_t packet_size = this->udp_->parsePacket()) {
     if (packet_size > MAX_PACKET_SIZE) {
-      ESP_LOGV(TAG, "UDP packet out of bounds: %d.", payload.size());
+      ESP_LOGW(TAG, "UDP packet out of bounds: %s:%d. %d bytes.",
+        this->udp_->remoteIP().toString().c_str(),
+        this->udp_->remotePort(),
+        packet_size
+      );
+      this->udp_->flush();
       continue;
     }
 
     payload.resize(packet_size);
 
     if (!this->udp_->read((unsigned char*)&payload[0], payload.size())) {
-      ESP_LOGV(TAG, "Failed to read UDP packet.");
+      ESP_LOGW(TAG, "Failed to read UDP packet: %s:%d. %d bytes.",
+        this->udp_->remoteIP().toString().c_str(),
+        this->udp_->remotePort(),
+        packet_size
+      );
       continue;
     }
+
+    ESP_LOGV(TAG, "UDP received: %s:%d. %d bytes.",
+      this->udp_->remoteIP().toString().c_str(),
+      this->udp_->remotePort(),
+      packet_size
+    );
 
     this->process_(this->udp_.get(), payload);
   }
