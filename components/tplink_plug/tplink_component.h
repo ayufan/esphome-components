@@ -13,13 +13,6 @@ class UDP;
 class WiFiServer;
 class WiFiClient;
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <AsyncTCP.h>
-#endif
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESPAsyncTCP.h>
-#endif
-
 namespace esphome {
 namespace tplink {
 
