@@ -121,8 +121,12 @@ void TplinkComponent::loop_udp_() {
         this->udp_->remotePort(),
         packet_size
       );
+      this->udp_->flush();
       continue;
     }
+
+    // clear read buffer
+    this->udp_->flush();
 
     ESP_LOGV(TAG, "UDP received: %s:%d. %d bytes.",
       this->udp_->remoteIP().toString().c_str(),
@@ -130,7 +134,15 @@ void TplinkComponent::loop_udp_() {
       packet_size
     );
 
-    this->process_(this->udp_.get(), payload);
+    this->process_([this](const std::string &output) {
+      if (!this->udp_->beginPacket(this->udp_->remoteIP(), this->udp_->remotePort()))
+        return false;
+      
+      if (!this->udp_->write((const uint8_t*)output.c_str(), output.size()))
+        return false;
+
+      return this->udp_->endPacket() != 0;
+    }, payload);
   }
 }
 
@@ -170,13 +182,17 @@ bool TplinkComponent::recv_tcp_(Client &client) {
     return false;
   }
 
-  this->process_(&client.socket, payload);
+  this->process_([&client](const std::string &output) {
+    unsigned int size = ntohl(output.size());
+    client.socket.write((const char*)&size, sizeof(size));
+    return client.socket.write(output.c_str(), output.size());
+  }, payload);
 
   // everything processed stop
   return false;
 }
 
-void TplinkComponent::process_(Stream *response, std::string &s) {
+void TplinkComponent::process_(response_t response, std::string &s) {
   bool get_realtime = false;
   bool set_relay_state = false;
   bool set_led_state = false;
@@ -216,7 +232,7 @@ void TplinkComponent::process_(Stream *response, std::string &s) {
   }
 }
 
-void TplinkComponent::process_set_relay_state_(Stream *response, bool requested_state) {
+void TplinkComponent::process_set_relay_state_(response_t response, bool requested_state) {
   for (auto &plug : this->plugs_) {
     if (requested_state) {
       plug.state_switch->turn_on();
@@ -233,10 +249,10 @@ void TplinkComponent::process_set_relay_state_(Stream *response, bool requested_
   }
 }
 
-void TplinkComponent::process_set_led_state_(Stream *response, bool requested_state) {
+void TplinkComponent::process_set_led_state_(response_t response, bool requested_state) {
 }
 
-void TplinkComponent::process_get_sysinfo_(Stream *response) {
+void TplinkComponent::process_get_sysinfo_(response_t response) {
   this->send_json_(response, [this](JsonObject &root) {
     auto &system = root.createNestedObject("system");
     auto &sysinfo = system.createNestedObject("get_sysinfo");
@@ -282,7 +298,7 @@ void TplinkComponent::process_get_sysinfo_(Stream *response) {
   });
 }
 
-void TplinkComponent::process_get_realtime_(Stream *response) {
+void TplinkComponent::process_get_realtime_(response_t response) {
   for (auto &plug : this->plugs_) {
     this->send_json_(response, [&plug](JsonObject &root) {
       auto &emeter = root.createNestedObject("emeter");
@@ -315,26 +331,17 @@ void TplinkComponent::process_get_realtime_(Stream *response) {
   }
 }
 
-bool TplinkComponent::send_json_(Stream *response, const esphome::json::json_build_t &fn) {
+bool TplinkComponent::send_json_(response_t response, const esphome::json::json_build_t &fn) {
   std::string output = esphome::json::build_json(fn);
 
-  if (output.empty()) {
+  if (output.empty() || !response) {
     return false;
   }
 
   ESP_LOGV(TAG, "Sending back: %s", output.c_str());
 
   this->encrypt_(output);
-
-  if (response == this->udp_.get()) { // udp
-    return response->write((const uint8_t*)output.c_str(), output.size());
-  } else if (response) { // tcp
-    unsigned int size = ntohl(output.size());
-    response->write((const char*)&size, sizeof(size));
-    return response->write(output.c_str(), output.size());
-  } else {
-    return false;
-  }
+  return response(output);
 }
 
 void TplinkComponent::decrypt_(std::string &s) {
