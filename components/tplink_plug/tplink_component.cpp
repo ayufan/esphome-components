@@ -203,17 +203,17 @@ void TplinkComponent::process_(response_t response, std::string &s) {
 
   ESP_LOGV(TAG, "Received raw: %s", hexencode((const uint8_t*)s.c_str(), s.size()).c_str());
 
-  esphome::json::parse_json(s, [&](JsonObject &root) {
+  esphome::json::parse_json(s, [&](JsonObject root) {
     ESP_LOGV(TAG, "Received valid JSON: %s.", s.c_str());
 
-    if (root["emeter"]["get_realtime"].success()) {
+    if (!root["emeter"]["get_realtime"].isNull()) {
       get_realtime = true;
-    } else if (root["system"]["set_relay_state"].success()) {
+    } else if (!root["system"]["set_relay_state"].isNull()) {
       set_relay_state = true;
       requested_state = root["system"]["set_relay_state"]["state"] > 0;
-    } else if (root["system"]["get_sysinfo"].success()) {
+    } else if (!root["system"]["get_sysinfo"].isNull()) {
       get_sysinfo = true;
-    } else if (root["system"]["set_led_state"].success()) {
+    } else if (!root["system"]["set_led_state"].isNull()) {
       set_led_state = true;
       requested_state = root["system"]["set_led_state"]["off"] == 0;
     }
@@ -240,9 +240,9 @@ void TplinkComponent::process_set_relay_state_(response_t response, bool request
       plug.state_switch->turn_off();
     }
 
-    this->send_json_(response, [](JsonObject &root) {
-      auto &emeter = root.createNestedObject("system");
-      auto &relay_state = emeter.createNestedObject("set_relay_state");
+    this->send_json_(response, [](JsonObject root) {
+      auto emeter = root.createNestedObject("system");
+      auto relay_state = emeter.createNestedObject("set_relay_state");
 
       relay_state["err_code"] = 0;
     });
@@ -253,9 +253,9 @@ void TplinkComponent::process_set_led_state_(response_t response, bool requested
 }
 
 void TplinkComponent::process_get_sysinfo_(response_t response) {
-  this->send_json_(response, [this](JsonObject &root) {
-    auto &system = root.createNestedObject("system");
-    auto &sysinfo = system.createNestedObject("get_sysinfo");
+  this->send_json_(response, [this](JsonObject root) {
+    auto system = root.createNestedObject("system");
+    auto sysinfo = system.createNestedObject("get_sysinfo");
     sysinfo["err_code"] = 0;
     sysinfo["sw_ver"] = "1.2.5 Build 171213 Rel.101523";
     sysinfo["hw_ver"] = "1.0";
@@ -277,9 +277,9 @@ void TplinkComponent::process_get_sysinfo_(response_t response) {
       // sysinfo["led_off"] = 0
       has_voltage_current = plug.voltage_sensor || plug.current_sensor;
     } else {
-      auto &children = sysinfo.createNestedArray("children");
+      auto children = sysinfo.createNestedArray("children");
       for (auto &plug : this->plugs_) {
-        auto &pluginfo = children.createNestedObject();
+        auto pluginfo = children.createNestedObject();
         pluginfo["relay_state"] = plug.state_switch->state ? 1 : 0;
         pluginfo["on_time"] = plug.state_switch->state ? 1 : 0;
         // sysinfo["led_off"] = 0
@@ -300,9 +300,9 @@ void TplinkComponent::process_get_sysinfo_(response_t response) {
 
 void TplinkComponent::process_get_realtime_(response_t response) {
   for (auto &plug : this->plugs_) {
-    this->send_json_(response, [&plug](JsonObject &root) {
-      auto &emeter = root.createNestedObject("emeter");
-      auto &realtime = emeter.createNestedObject("get_realtime");
+    this->send_json_(response, [&plug](JsonObject root) {
+      auto emeter = root.createNestedObject("emeter");
+      auto realtime = emeter.createNestedObject("get_realtime");
 
       realtime["err_code"] = 0;
 
