@@ -20,7 +20,11 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(EQ3Climate),
     cv.GenerateID(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
     cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
-    cv.Optional(CONF_VALVE): sensor.sensor_schema(UNIT_PERCENT, ICON_PERCENT, 0),
+    cv.Optional(CONF_VALVE): sensor.sensor_schema(
+            unit_of_measurement=UNIT_PERCENT,
+            accuracy_decimals=0,
+            icon=ICON_PERCENT,
+        ),
     cv.Optional(CONF_PIN): cv.string,
     cv.Optional(CONF_TEMP): cv.use_id(sensor.Sensor)
 }).extend(cv.polling_component_schema('4h')))
