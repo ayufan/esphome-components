@@ -23,7 +23,7 @@ bool iNodeMeterSensor::parse_device(
   // iNode Manfacturer Data: UUID: 82:A0. Data: 07.00.2B.24.A0.00.E8.03.B0.00.00 (11)
   for (auto service_data : device.get_manufacturer_datas()) {
     ESP_LOGD(TAG, "iNode Manfacturer Data: UUID: %s. Data: %s",
-      service_data.uuid.to_string().c_str(), hexencode(service_data.data).c_str());
+      service_data.uuid.to_string().c_str(), format_hex_pretty(service_data.data).c_str());
 
     if (service_data.data.empty()) {
       continue;

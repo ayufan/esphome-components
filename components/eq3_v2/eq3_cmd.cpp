@@ -105,10 +105,10 @@ bool EQ3Climate::send_command(void *command, uint16_t length) {
 
   if (result) {
     ESP_LOGV(TAG, "Sent of `%s` to %10llx to handle %04x.",
-      hexencode((const uint8_t*)command, length).c_str(), address, command_handle);
+      format_hex_pretty((const uint8_t*)command, length).c_str(), address, command_handle);
   } else {
     ESP_LOGV(TAG, "Send of `%s` to %10llx to handle %04x: %d",
-      hexencode((const uint8_t*)command, length).c_str(), address, command_handle, result);
+      format_hex_pretty((const uint8_t*)command, length).c_str(), address, command_handle, result);
   }
 
   return result;
@@ -286,6 +286,6 @@ void EQ3Climate::parse_client_notify(std::string data) {
   } else {
     ESP_LOGW(TAG, "Received unknown characteristic from %10llx: %s.",
       address,
-      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
+      format_hex_pretty((const uint8_t*)data.c_str(), data.size()).c_str());
   }
 }

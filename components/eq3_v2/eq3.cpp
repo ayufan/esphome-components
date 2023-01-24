@@ -183,7 +183,7 @@ void EQ3Climate::parse_state(const std::string &data) {
   if (data.size() != sizeof(DeviceStateReturn)) {
     ESP_LOGW(TAG, "State parse of %10llx failed: %s.",
       address,
-      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
+      format_hex_pretty((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
@@ -247,7 +247,7 @@ void EQ3Climate::parse_schedule(const std::string &data) {
   if (data.size() < sizeof(DeviceScheduleReturn)) {
     ESP_LOGW(TAG, "Schedule parse of %10llx failed: %s.",
       address,
-      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
+      format_hex_pretty((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
@@ -279,7 +279,7 @@ void EQ3Climate::parse_id(const std::string &data) {
   if (data.size() != sizeof(DeviceIDReturn)) {
     ESP_LOGW(TAG, "ID parse of %10llx failed: %s.",
       address,
-      hexencode((const uint8_t*)data.c_str(), data.size()).c_str());
+      format_hex_pretty((const uint8_t*)data.c_str(), data.size()).c_str());
     return;
   }
 
@@ -289,7 +289,7 @@ void EQ3Climate::parse_id(const std::string &data) {
   ESP_LOGI(TAG, "'%s': Version: %d", get_name().c_str(),
     id->version);
   ESP_LOGI(TAG, "'%s': Serial: %s", get_name().c_str(),
-    hexencode(id->serial, sizeof(id->serial)).c_str());
+    format_hex_pretty(id->serial, sizeof(id->serial)).c_str());
 }
 
 ClimateTraits EQ3Climate::traits() {

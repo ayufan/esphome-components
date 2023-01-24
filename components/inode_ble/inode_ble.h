@@ -24,11 +24,6 @@ struct iNodeMeterData {
 #define INODE_PUBLISH(name, value) \
   do { if (name##_) { name##_->publish_state(value); } } while(0)
 
-// TODO: 1.14.5 misses the `==` which is present on `1.15.x`
-inline bool operator == (esphome::esp32_ble_tracker::ESPBTUUID a, esphome::esp32_ble_tracker::ESPBTUUID b) {
-  return a.to_string() == b.to_string();
-}
-
 class iNodeMeterSensor : public esphome::Component, public esphome::esp32_ble_tracker::ESPBTDeviceListener {
 public:
   bool parse_device(const esphome::esp32_ble_tracker::ESPBTDevice &device) override;

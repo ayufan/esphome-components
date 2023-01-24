@@ -23,7 +23,7 @@ static void print_uuid(const char *name, const esp_bt_uuid_t &uuid, uint16_t han
 {
   BLE_LOGI(TAG, "UUID: %s: %s => handle: %04x",
     name,
-    hexencode(uuid.uuid.uuid128, uuid.len).c_str(),
+    format_hex_pretty(uuid.uuid.uuid128, uuid.len).c_str(),
     handle);
 }
 

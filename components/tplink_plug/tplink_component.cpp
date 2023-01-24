@@ -201,7 +201,7 @@ void TplinkComponent::process_(response_t response, std::string &s) {
 
   this->decrypt_(s);
 
-  ESP_LOGV(TAG, "Received raw: %s", hexencode((const uint8_t*)s.c_str(), s.size()).c_str());
+  ESP_LOGV(TAG, "Received raw: %s", format_hex_pretty((const uint8_t*)s.c_str(), s.size()).c_str());
 
   esphome::json::parse_json(s, [&](JsonObject root) {
     ESP_LOGV(TAG, "Received valid JSON: %s.", s.c_str());

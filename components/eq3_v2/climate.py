@@ -3,7 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import climate, sensor, time
 from esphome.components.remote_base import CONF_TRANSMITTER_ID
 from esphome.const import CONF_ID, CONF_TIME_ID, CONF_MAC_ADDRESS, \
-    UNIT_PERCENT, ICON_PERCENT
+    UNIT_PERCENT, ICON_PERCENT, STATE_CLASS_MEASUREMENT
 
 DEPENDENCIES = ['esp32']
 CONFLICTS_WITH = ['eq3_v1', 'esp32_ble_tracker']
@@ -20,7 +20,12 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(EQ3Climate),
     cv.GenerateID(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
     cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
-    cv.Optional(CONF_VALVE): sensor.sensor_schema(UNIT_PERCENT, ICON_PERCENT, 0),
+    cv.Optional(CONF_VALVE): sensor.sensor_schema(
+        unit_of_measurement=UNIT_PERCENT,
+        icon=ICON_PERCENT,
+        accuracy_decimals=0,
+        state_class=STATE_CLASS_MEASUREMENT
+    ),
     cv.Optional(CONF_PIN): cv.string,
     cv.Optional(CONF_TEMP): cv.use_id(sensor.Sensor)
 }).extend(cv.polling_component_schema('4h')))
