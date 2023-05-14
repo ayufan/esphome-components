@@ -249,6 +249,33 @@ esp32_camera:
   jpeg_quality: 12
 ```
 
+### 2.6. `zp16` sensor
+
+The ZP16 is a low-cost TVOC sensor.
+
+Links:
+- https://www.winsentech.com/npublic/opdfjs/web/viewer.html?u=1621050968327720960&fileName=ZP16%20Air-Quality%20Detection%20Module%20manual%201.1
+- https://www.aliexpress.com/i/4000068334696.html
+
+```yaml
+uart:
+  - id: zp16_uart
+    rx_pin: D7
+    tx_pin: D6
+    baud_rate: 9600
+
+sensor:
+  - platform: zp16
+    tvoc:
+      name: "${prefix} TVOC ZP16"
+    tvoc_scale:
+      name: "${prefix} TVOC Scale ZP16"
+    uart_id: zp16_uart
+    # rx_only: true
+    # update_interval: 5s # use Q&A mode and request update every 5s
+    # update_interval: 0 # use Active-Upload mode and wait for periodic update (~1s)
+```
+
 ## 3. Author & License
 
 Kamil Trzciński, MIT, 2019-2021
