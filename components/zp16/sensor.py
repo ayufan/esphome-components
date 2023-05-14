@@ -8,7 +8,7 @@ from esphome.const import (
     CONF_TVOC,
     DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS,
     ICON_RADIATOR,
-    UNIT_PARTS_PER_BILLION,
+    UNIT_MILLIGRAMS_PER_CUBIC_METER,
     STATE_CLASS_MEASUREMENT,
 )
 
@@ -37,14 +37,14 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(ZP16Component),
             cv.Optional(CONF_RX_ONLY, default=False): cv.boolean,
             cv.Required(CONF_TVOC): sensor.sensor_schema(
-              unit_of_measurement=UNIT_PARTS_PER_BILLION,
+              unit_of_measurement=UNIT_MILLIGRAMS_PER_CUBIC_METER,
               icon=ICON_RADIATOR,
               accuracy_decimals=1,
               device_class=DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS,
               state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_TVOC_SCALE): sensor.sensor_schema(
-              unit_of_measurement=UNIT_PARTS_PER_BILLION,
+              unit_of_measurement=UNIT_MILLIGRAMS_PER_CUBIC_METER,
               icon=ICON_RADIATOR,
               accuracy_decimals=1,
               device_class=DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS,
