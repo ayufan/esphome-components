@@ -1,7 +1,6 @@
 #include "inode_ble.h"
 #include "esphome/core/log.h"
 
-#ifdef ARDUINO_ARCH_ESP32
 using namespace esphome;
 
 static const char *TAG = "inode_ble";
@@ -84,5 +83,3 @@ void iNodeMeterSensor::dump_config() {
 
   LOG_SENSOR("  ", "Light Level", this->light_level_);
 }
-
-#endif
