@@ -55,7 +55,7 @@ void TplinkComponent::loop() {
 }
 
 void TplinkComponent::loop_tcp_accept_() {
-  if (auto new_socket = this->tcp_->available()) {
+  if (auto new_socket = this->tcp_->accept()) {
     if (this->clients_.size() < MAX_CLIENTS) {
       new_socket.setTimeout(3);
   
@@ -217,6 +217,8 @@ void TplinkComponent::process_(response_t response, std::string &s) {
       set_led_state = true;
       requested_state = root["system"]["set_led_state"]["off"] == 0;
     }
+
+    return true; // continue parsing
   });
   
   if (get_realtime) {
@@ -241,8 +243,8 @@ void TplinkComponent::process_set_relay_state_(response_t response, bool request
     }
 
     this->send_json_(response, [](JsonObject root) {
-      auto emeter = root.createNestedObject("system");
-      auto relay_state = emeter.createNestedObject("set_relay_state");
+      auto emeter = root["system"].to<JsonObject>();
+      auto relay_state = emeter["set_relay_state"].to<JsonObject>();
 
       relay_state["err_code"] = 0;
     });
@@ -254,8 +256,8 @@ void TplinkComponent::process_set_led_state_(response_t response, bool requested
 
 void TplinkComponent::process_get_sysinfo_(response_t response) {
   this->send_json_(response, [this](JsonObject root) {
-    auto system = root.createNestedObject("system");
-    auto sysinfo = system.createNestedObject("get_sysinfo");
+    auto system = root["system"].to<JsonObject>();
+    auto sysinfo = system["get_sysinfo"].to<JsonObject>();
     sysinfo["err_code"] = 0;
     sysinfo["sw_ver"] = "1.2.5 Build 171213 Rel.101523";
     sysinfo["hw_ver"] = "1.0";
@@ -277,9 +279,9 @@ void TplinkComponent::process_get_sysinfo_(response_t response) {
       // sysinfo["led_off"] = 0
       has_voltage_current = plug.voltage_sensor || plug.current_sensor;
     } else {
-      auto children = sysinfo.createNestedArray("children");
+      auto children = sysinfo["children"].to<JsonArray>();
       for (auto &plug : this->plugs_) {
-        auto pluginfo = children.createNestedObject();
+        auto pluginfo = children.add<JsonObject>();
         pluginfo["relay_state"] = plug.state_switch->state ? 1 : 0;
         pluginfo["on_time"] = plug.state_switch->state ? 1 : 0;
         // sysinfo["led_off"] = 0
@@ -301,8 +303,8 @@ void TplinkComponent::process_get_sysinfo_(response_t response) {
 void TplinkComponent::process_get_realtime_(response_t response) {
   for (auto &plug : this->plugs_) {
     this->send_json_(response, [&plug](JsonObject root) {
-      auto emeter = root.createNestedObject("emeter");
-      auto realtime = emeter.createNestedObject("get_realtime");
+      auto emeter = root["emeter"].to<JsonObject>();
+      auto realtime = emeter["get_realtime"].to<JsonObject>();
 
       realtime["err_code"] = 0;
 
