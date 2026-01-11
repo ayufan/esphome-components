@@ -16,7 +16,7 @@ namespace tplink {
 
 static const char *TAG = "tplink_plug";
 static const int PORT = 9999;
-static const int MAX_CLIENTS = 2;
+static const int MAX_CLIENTS = 4;
 static const int MAX_PACKET_SIZE = 100;
 
 struct Client {
@@ -33,6 +33,11 @@ TplinkComponent::~TplinkComponent() {
   if (this->tcp_) {
     this->tcp_->stop();
   }
+  for (auto client : this->clients_) {
+    client->socket.stop();
+    delete client;
+  }
+  this->clients_.clear();
 }
 
 void TplinkComponent::setup() {
@@ -56,23 +61,27 @@ void TplinkComponent::loop() {
 
 void TplinkComponent::loop_tcp_accept_() {
   if (auto new_socket = this->tcp_->accept()) {
-    if (this->clients_.size() < MAX_CLIENTS) {
-      new_socket.setTimeout(3);
-  
-      this->clients_.push_back(
-        new Client{.socket = new_socket, .length = -1}
-      );
+    if (this->clients_.size() >= MAX_CLIENTS) {
+      auto oldest_client = this->clients_.front();
 
-      ESP_LOGV(TAG, "TCP accepted: %s:%d. Count: %d",
-        new_socket.remoteIP().toString().c_str(),
-        new_socket.remotePort(), this->clients_.size());
-    } else {
-      ESP_LOGW(TAG, "TCP ignored: %s:%d. Too many connections",
-        new_socket.remoteIP().toString().c_str(),
-        new_socket.remotePort());
+      ESP_LOGW(TAG, "TCP closing oldest: %s:%d to make space for new client.",
+        oldest_client->socket.remoteIP().toString().c_str(),
+        oldest_client->socket.remotePort());
 
-      new_socket.stop();
+      oldest_client->socket.stop();
+      delete oldest_client;
+      this->clients_.erase(this->clients_.begin());
     }
+
+    new_socket.setTimeout(3);
+
+    this->clients_.push_back(
+      new Client{.socket = new_socket, .length = -1}
+    );
+
+    ESP_LOGV(TAG, "TCP accepted: %s:%d. Count: %d",
+      new_socket.remoteIP().toString().c_str(),
+      new_socket.remotePort(), this->clients_.size());
   }
 }
 
@@ -95,7 +104,7 @@ void TplinkComponent::loop_tcp_() {
   }
 
   if (done < this->clients_.size()) {
-    this->clients_.erase(this->clients_.begin() + done);
+    this->clients_.erase(this->clients_.begin() + done, this->clients_.end());
   }
 }
 
