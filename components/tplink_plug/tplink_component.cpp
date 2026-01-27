@@ -18,10 +18,12 @@ static const char *TAG = "tplink_plug";
 static const int PORT = 9999;
 static const int MAX_CLIENTS = 4;
 static const int MAX_PACKET_SIZE = 100;
+static const uint32_t CLIENT_TIMEOUT_MS = 10000;
 
 struct Client {
   WiFiClient socket;
   int length;
+  uint32_t last_activity;
 };
 
 TplinkComponent::TplinkComponent() {}
@@ -76,7 +78,7 @@ void TplinkComponent::loop_tcp_accept_() {
     new_socket.setTimeout(3);
 
     this->clients_.push_back(
-      new Client{.socket = new_socket, .length = -1}
+      new Client{.socket = new_socket, .length = -1, .last_activity = millis()}
     );
 
     ESP_LOGV(TAG, "TCP accepted: %s:%d. Count: %d",
@@ -91,7 +93,8 @@ void TplinkComponent::loop_tcp_() {
   for (int i = 0; i < this->clients_.size(); ++i) {
     auto client = this->clients_[i];
 
-    if (client->socket && this->recv_tcp_(*client)) {
+    bool timed_out = millis() - client->last_activity > CLIENT_TIMEOUT_MS;
+    if (client->socket && !timed_out && this->recv_tcp_(*client)) {
       this->clients_[done++] = client;
     } else {
       ESP_LOGV(TAG, "TCP done: %s:%d",
@@ -170,6 +173,7 @@ bool TplinkComponent::recv_tcp_(Client &client) {
     }
 
     client.length = htonl(client.length);
+    client.last_activity = millis();
 
     if (client.length < 0 || client.length > MAX_PACKET_SIZE) {
       ESP_LOGW(TAG, "TCP packet out of bounds: %d.", client.length);
