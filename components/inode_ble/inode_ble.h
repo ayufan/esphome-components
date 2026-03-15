@@ -4,8 +4,6 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 
-#ifdef ARDUINO_ARCH_ESP32
-
 struct iNodeMeterData {
   unsigned short rawAvg;
   unsigned int rawSum;
@@ -35,18 +33,16 @@ public:
   INODE_SET_METHOD(uint64_t, address, 0);
   INODE_SET_METHOD(int, constant, 1);
 
-  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_raw, 0);
-  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_w, 0);
-  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_dm3, 0);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_raw, nullptr);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_w, nullptr);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, avg_dm3, nullptr);
 
-  INODE_SET_METHOD(esphome::sensor::Sensor *, total_raw, 0);
-  INODE_SET_METHOD(esphome::sensor::Sensor *, total_kwh, 0);
-  INODE_SET_METHOD(esphome::sensor::Sensor *, total_dm3, 0);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, total_raw, nullptr);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, total_kwh, nullptr);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, total_dm3, nullptr);
 
-  INODE_SET_METHOD(esphome::sensor::Sensor *, battery_level, 0);
-  INODE_SET_METHOD(esphome::sensor::Sensor *, battery_level_v, 0);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, battery_level, nullptr);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, battery_level_v, nullptr);
 
-  INODE_SET_METHOD(esphome::sensor::Sensor *, light_level, 0);
+  INODE_SET_METHOD(esphome::sensor::Sensor *, light_level, nullptr);
 };
-
-#endif
